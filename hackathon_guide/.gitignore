@@ -1,0 +1,13 @@
+# LaTeX build artifacts
+*.aux
+*.log
+*.out
+*.toc
+*.blg
+*.fls
+*.fdb_latexmk
+*.synctex.gz
+build.log
+
+# Redundant: extracted into arxiv_src/
+arxiv_src_2602.03604

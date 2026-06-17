@@ -1,0 +1,1506 @@
+\documentclass{article}
+\usepackage{iclr2026_conference,times}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{url}
+\usepackage{booktabs}
+\usepackage{amsfonts}
+\usepackage{amsmath}
+\usepackage{nicefrac}
+\usepackage{microtype}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{multirow}
+\usepackage{subcaption}
+\usepackage{wrapfig}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{enumitem}
+\usepackage{listings}
+\usepackage[most]{tcolorbox}
+\usepackage{hyperref}
+\usepackage[noabbrev,capitalize]{cleveref}
+
+% ---------------------------------------------------------------------------
+% Colors
+% ---------------------------------------------------------------------------
+\definecolor{ebblue}{HTML}{1F5FA8}
+\definecolor{ebgreen}{HTML}{2E7D32}
+\definecolor{ebred}{HTML}{B5212F}
+\definecolor{ebamber}{HTML}{B36B00}
+\definecolor{ebgray}{HTML}{4A4A4A}
+\definecolor{codebg}{HTML}{F5F5F5}
+\definecolor{codeframe}{HTML}{D8D8D8}
+\definecolor{keyword}{HTML}{0B5FB0}
+\definecolor{string}{HTML}{2E7D32}
+\definecolor{comment}{HTML}{8A8A8A}
+
+\hypersetup{
+  colorlinks=true,
+  linkcolor=ebblue,
+  citecolor=ebgreen,
+  urlcolor=ebblue,
+}
+
+% ---------------------------------------------------------------------------
+% Code listings: bash, yaml, python
+% ---------------------------------------------------------------------------
+\lstdefinelanguage{yaml}{
+  keywords={true,false,null},
+  keywordstyle=\color{keyword}\bfseries,
+  basicstyle=\ttfamily\small,
+  sensitive=false,
+  comment=[l]{\#},
+  morecomment=[s]{/*}{*/},
+  commentstyle=\color{comment},
+  stringstyle=\color{string},
+  moredelim=[l][\color{ebblue}]{:},
+}
+
+\lstset{
+  basicstyle=\ttfamily\footnotesize,
+  backgroundcolor=\color{codebg},
+  frame=single,
+  rulecolor=\color{codeframe},
+  framesep=5pt,
+  xleftmargin=6pt,
+  xrightmargin=2pt,
+  breaklines=true,
+  breakatwhitespace=true,
+  showstringspaces=false,
+  keywordstyle=\color{keyword}\bfseries,
+  commentstyle=\color{comment}\itshape,
+  stringstyle=\color{string},
+  columns=fullflexible,
+  keepspaces=true,
+  postbreak=\mbox{\textcolor{codeframe}{$\hookrightarrow$}\space},
+}
+
+\lstdefinestyle{bash}{language=bash}
+\lstdefinestyle{py}{language=Python}
+\lstdefinestyle{yml}{language=yaml}
+
+% Inline code shortcut
+\newcommand{\code}[1]{\texttt{\small #1}}
+\newcommand{\file}[1]{\texttt{\small #1}}
+
+% ---------------------------------------------------------------------------
+% Callout boxes
+% ---------------------------------------------------------------------------
+\newtcolorbox{tipbox}{
+  enhanced, breakable, colback=ebgreen!5, colframe=ebgreen,
+  boxrule=0.5pt, left=6pt, right=6pt, top=4pt, bottom=4pt,
+  fonttitle=\bfseries, title={\faMagic\ Tip}, coltitle=ebgreen,
+  attach title to upper, after title={\ \ }, titlerule=0pt,
+}
+\newtcolorbox{gotchabox}{
+  enhanced, breakable, colback=ebred!5, colframe=ebred,
+  boxrule=0.5pt, left=6pt, right=6pt, top=4pt, bottom=4pt,
+  fonttitle=\bfseries, coltitle=ebred,
+  attach title to upper, after title={\ \ }, titlerule=0pt,
+  title={Gotcha.},
+}
+\newtcolorbox{notebox}{
+  enhanced, breakable, colback=ebblue!4, colframe=ebblue,
+  boxrule=0.5pt, left=6pt, right=6pt, top=4pt, bottom=4pt,
+  fonttitle=\bfseries, coltitle=ebblue,
+  attach title to upper, after title={\ \ }, titlerule=0pt,
+  title={Note.},
+}
+
+% Track box: a project-track card with title argument
+\newtcolorbox{trackbox}[1]{
+  enhanced, breakable, colback=ebgray!3, colframe=ebgray,
+  boxrule=0.7pt, left=7pt, right=7pt, top=5pt, bottom=5pt,
+  fonttitle=\bfseries\color{white}, colbacktitle=ebgray,
+  title={#1},
+}
+
+% Difficulty badges
+\newcommand{\diffeasy}{\colorbox{ebgreen!18}{\textcolor{ebgreen}{\small\bfseries Warm-up}}}
+\newcommand{\diffmed}{\colorbox{ebamber!18}{\textcolor{ebamber}{\small\bfseries Standard}}}
+\newcommand{\diffhard}{\colorbox{ebred!15}{\textcolor{ebred}{\small\bfseries Ambitious}}}
+
+% faMagic fallback (no fontawesome dependency)
+\providecommand{\faMagic}{$\star$}
+
+% ---------------------------------------------------------------------------
+% Title
+% ---------------------------------------------------------------------------
+\title{EB-JEPA Hackathon Field Guide\\[0.3em]
+\large A 24-Hour Sprint Through Joint-Embedding Predictive Architectures}
+
+\author{Basile Terver and Théo Le Pendeven\\
+EB-JEPA Hackathon\\
+\texttt{github.com/facebookresearch/eb\_jepa}
+}
+
+\newcommand{\fix}{\marginpar{FIX}}
+\newcommand{\new}{\marginpar{NEW}}
+
+\iclrfinalcopy
+
+\begin{document}
+
+\maketitle
+\fancyhead[L]{EB-JEPA Hackathon Field Guide}
+
+\begin{abstract}
+Welcome to the EB-JEPA Hackathon. Over the next 24 hours you will get hands-on
+with Joint-Embedding Predictive Architectures (JEPAs): self-supervised models
+that learn to predict in representation space rather than pixel space. This guide
+is your field manual. It walks you through the three working examples shipped
+with the \texttt{eb\_jepa} library (image representation learning, video
+prediction, and action-conditioned world modeling with planning), shows you the
+small set of components you will actually edit, and hands you a curated menu of
+project tracks: most aimed at carrying the JEPA recipe to new continuous,
+high-dimensional, noisy modalities, and some at pushing the vision and robotics
+settings already in the codebase. It closes with the practical logistics:
+compute policy on the shared B200 cluster, deliverables, and how projects are
+judged. Read \cref{sec:gameplan} first, skim the rest, and start running code
+within the hour.
+\end{abstract}
+
+% =============================================================================
+\section{Welcome and the 24-Hour Game Plan}
+\label{sec:gameplan}
+
+This hackathon brings together roughly 100 participants in 25 teams of four,
+sharing 72 NVIDIA B200 GPUs for 24 hours. The goal is not a leaderboard win; it
+is to understand JEPAs by building with them. By the end you should be able to
+explain, and have modified, the three core pieces of every JEPA: an
+\emph{encoder} $f_\theta$ that maps observations to representations, a
+\emph{predictor} $g_\phi$ that predicts future or alternate representations, and
+a \emph{regularizer} $\mathcal{R}$ that stops those representations from
+collapsing to a constant.
+
+\paragraph{Why JEPAs, and why this codebase.}
+Production JEPA stacks (I-JEPA, V-JEPA, V-JEPA~2)~\citep{IJEPA,VJEPA,VJEPA2} are
+powerful but large and hard to navigate, and world-model implementations often
+assume frozen pre-trained encoders and bespoke setups~\citep{DINO-WM,terver2026JEPAWMs}.
+The \texttt{eb\_jepa} library~\citep{EBJEPA}
+exists to close that gap: three self-contained examples, each trainable on a
+single GPU in a few hours, that take you from static-image self-supervision to
+temporal prediction to action-conditioned planning, all under one energy-based
+objective (\cref{sec:recipe}). That makes it an ideal sandbox for a 24-hour
+sprint: you can train a model end to end several times, ablate a component, and
+actually see the effect before the clock runs out. By design \texttt{eb\_jepa} is
+the prototyping rung of a ladder: once an idea works here, larger codebases pick
+it up, \texttt{jepa-wms}~\citep{terver2026JEPAWMs} for planning with frozen
+encoders on diverse benchmarks, and \texttt{stable-worldmodel}~\citep{stableworldmodel}
+for a broad, controllable suite of world-model environments. Prototype small here;
+scale and validate there.
+
+\paragraph{What we want you to explore.}
+The library ships with vision and robotics modalities. The headline challenge of
+this hackathon is to take the \emph{JEPA recipe to data it was not built for}:
+continuous, high-dimensional, noisy signals such as audio, physiological
+recordings, climate and sensor fields, financial or scientific time series, and
+point clouds. JEPAs are a natural fit here precisely because they predict in a
+learned latent space and discard task-irrelevant noise, rather than reconstructing
+every sample. Teams who prefer to stay in vision or robotics are very welcome to
+push the existing examples with innovative ideas instead; \cref{sec:tracks}
+offers a menu of both. Either way, the engineering surface is the same small set
+of swappable components, and \cref{sec:extension} tells you exactly which files
+to touch.
+
+\paragraph{Scope realistically.}
+Twenty-four hours is short. A successful project is one clear hypothesis,
+tested with a clean before/after comparison, with a figure or number to show for
+it. It is far better to get one new modality training without collapsing and to
+\emph{understand why} than to half-wire three ambitious ideas. The single most
+common failure mode in JEPA training is representation collapse; budget time for
+it, watch the variance and prediction losses (\cref{sec:recipe}), and read the
+gotchas in each example walkthrough.
+
+\subsection{A suggested timeline}
+
+\Cref{tab:timeline} is a sane default for a team of four, not a mandate. Adapt it
+to your sleep schedule and your project's risk. The recurring theme: get real
+code running in the first hour, lock your scope early, and stop \emph{building}
+with several hours to spare so you can evaluate, visualize, and write up.
+
+\begin{table}[h]
+\centering
+\caption{\textbf{A default 24-hour plan for a team of four.} Times are elapsed
+hours from kickoff. ``Pods'' refers to splitting the team so that environment
+setup, code reading, and a baseline run happen in parallel rather than in
+series.}
+\label{tab:timeline}
+\small
+\begin{tabular}{llp{8.4cm}}
+\toprule
+Phase & Hours & What to do \\
+\midrule
+Ignite      & 0--1   & Clone, install (\cref{sec:setup}), launch the \code{image\_jepa} smoke test on one GPU. Skim this guide. \\
+Orient      & 1--3   & In parallel pods: (i) run all three examples; (ii) read the example you will build on; (iii) pick a track (\cref{sec:tracks}). \\
+Lock scope  & 3--4   & Write a one-sentence hypothesis and a success metric. Sketch the data $\to$ encoder $\to$ predictor $\to$ loss path on paper. \\
+Baseline    & 4--8   & Get \emph{something} training without collapsing: data loader yields the right tensor shape, loss decreases, variance stays alive. \\
+Iterate     & 8--16  & One change at a time. Keep the previous run as the baseline; ablate; sweep two or three hyperparameters (\cref{sec:setup}). \\
+Evaluate    & 16--21 & Lock the model. Run downstream eval / planning / probing. Make the figures. Re-run a seed for error bars if time allows. \\
+Write up    & 21--24 & Push the repo (GitHub Classroom) and prepare the 10-minute presentation. State the hypothesis, the result, and one thing you learned about JEPAs. \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{tipbox}
+Treat the first training run as a plumbing test, not a science experiment. Use a
+tiny model, a handful of epochs, and \code{logging.log\_wandb=false} to confirm the
+pipeline runs end to end in minutes. Only then turn the knobs up. A pipeline that
+runs at hour~5 beats a beautiful idea that first executes at hour~20.
+\end{tipbox}
+
+\subsection{How to read this guide}
+
+\Cref{sec:recipe} is the two-page conceptual core: the unified JEPA objective and
+the regularizers, enough theory to act. \Cref{sec:setup} gets you installed and
+explains the launcher and the compute policy. \Cref{sec:examples} walks through
+the three examples in the run-it / read-it / tweak-it pattern. \Cref{sec:extension}
+is the reference you will return to most: the exact extension points for
+encoders, predictors, regularizers, and datasets. \Cref{sec:tracks} is the
+project menu. \Cref{sec:logistics} covers compute, deliverables, and judging.
+For prior work, a curated per-track reading list lives in \code{references/README.md}
+at the repo root (see \Cref{sec:tracks}). Throughout, \code{monospaced paths} point
+at real files in the repository, and boxes flag \textbf{tips}, \textbf{gotchas},
+and \textbf{notes} worth pausing on.
+\section{The JEPA Recipe in Two Pages}
+\label{sec:recipe}
+
+This section is the whole conceptual toolkit you need to start. If you remember
+one thing: a JEPA learns by \emph{predicting one representation from another},
+and the only reason it does not cheat by mapping everything to a constant is the
+regularizer. Everything else is architecture.
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=\linewidth]{figures/Archi_schema-eb-jepa.pdf}
+\caption{\textbf{One architecture, three settings.} An encoder $f_\theta$ maps
+inputs to representations; a predictor $g_\phi$ maps a context representation to a
+predicted target $\hat{z}$; a cost $C$ measures prediction error in
+representation space. \textbf{(a)} Image: two augmented views, $g_\phi$ is the
+identity. \textbf{(b)} Video: $g_\phi$ predicts the next frame's representation.
+\textbf{(c)} Action-conditioned video: the predictor is additionally conditioned
+on an action $a_t$. \textbf{(d)} Planning: optimize an action sequence so the
+imagined rollout reaches a goal representation $z_g$.}
+\label{fig:archi}
+\end{figure}
+
+\subsection{The unified energy objective}
+
+We view JEPAs through the lens of energy-based models~\citep{LeCunEBMTutorial2006}.
+An energy function $E$ assigns a scalar to an input--output pair; low energy means
+``compatible.'' For a JEPA, energy is simply prediction error in representation
+space. Given an encoder $f_\theta$, a predictor $g_\phi$, and optional
+conditioning $a$ with its own encoder $q_\omega$, the general energy is
+\begin{equation}
+E(x, x', a) = \mathcal{L}_{\text{pred}}\big(g_\phi(f_\theta(x), q_\omega(a)),\ f_\theta(x')\big),
+\label{eq:energy}
+\end{equation}
+and training minimizes this energy plus a regularizer $\mathcal{R}$ that prevents
+collapse:
+\begin{equation}
+\mathcal{L} = \mathcal{L}_{\text{pred}}\big(g_\phi(z, u), z'\big) + \lambda\,\mathcal{R}(z),
+\qquad z = f_\theta(x),\ u = q_\omega(a).
+\label{eq:general}
+\end{equation}
+The three examples are \cref{eq:general} with different choices of $g_\phi$ and
+conditioning.
+
+\paragraph{(a) Image-JEPA: invariance.} Two augmented views $x, x'$ of the same
+image; the predictor is the identity, so the model just pulls the two
+representations together,
+\begin{equation}
+\mathcal{L}_{\text{image}} = \|z - z'\|_2^2 + \lambda\,\mathcal{R}(z, z').
+\label{eq:image}
+\end{equation}
+Low energy means the encoder has learned features invariant to the augmentation.
+
+\paragraph{(b) Video-JEPA: temporal prediction.} The predictor sees a context of
+$v{+}1$ frame representations and predicts the next one, summed over time,
+\begin{equation}
+\mathcal{L}_{\text{video}} = \sum_{t} \|g_\phi(z_{t-v:t}) - z_{t+1}\|_2^2 + \lambda\,\mathcal{R}(z_{1:T}).
+\label{eq:video}
+\end{equation}
+
+\paragraph{(c) AC-video-JEPA: world modeling.} An action encoder produces
+$u_t = q_\omega(a_{t-w:t})$ and the predictor is conditioned on it,
+\begin{equation}
+\mathcal{L}_{\text{world}} = \sum_{t} \|g_\phi(z_{t-v:t}, u_{t-v:t}) - z_{t+1}\|_2^2 + \lambda\,\mathcal{R}(z_{1:T}, u_{1:T}).
+\label{eq:world}
+\end{equation}
+This is a latent dynamics model: given a state and an action, predict the next
+state. It is what makes planning (\cref{sec:planning}) possible.
+
+\begin{notebox}
+In code this is one method. \file{eb\_jepa/jepa.py} defines a single
+\code{JEPA} module whose \code{unroll(...)} call handles all three settings,
+plus planning. Image-JEPA uses an identity predictor; video drops the action
+encoder; AC-video uses everything. When you build a new modality you are picking
+an encoder, a predictor, and a regularizer, then handing them to this same class.
+\end{notebox}
+
+\subsection{Preventing collapse: the regularizers}
+
+If you only minimized prediction error, the encoder would map everything to a
+constant: zero error, zero information. JEPAs in this library prevent that with
+explicit regularization (rather than stop-gradient or EMA
+tricks~\citep{BYOL,SimSiam}). Two families are implemented.
+
+\paragraph{VICReg}~\citep{VICReg} uses two terms on a batch of embeddings
+$Z \in \mathbb{R}^{N \times D}$. A \emph{variance} term keeps every feature
+dimension from shrinking,
+\begin{equation}
+\mathcal{L}_{\text{var}}(Z) = \frac{1}{D}\sum_{j=1}^{D} \max\!\Big(0,\ \gamma - \sqrt{\operatorname{Var}(Z_{:,j}) + \epsilon}\Big),
+\label{eq:var}
+\end{equation}
+with target standard deviation $\gamma$ (typically $1$); and a \emph{covariance}
+term decorrelates dimensions so the model uses all its capacity,
+\begin{equation}
+\mathcal{L}_{\text{cov}}(Z) = \frac{1}{D(D-1)}\sum_{i\neq j} [C(Z)]_{i,j}^2,
+\qquad C(Z) = \frac{1}{N-1}(Z - \bar{Z})^\top (Z - \bar{Z}).
+\label{eq:cov}
+\end{equation}
+The full regularizer is $\mathcal{R}_{\text{VICReg}} = \alpha \mathcal{L}_{\text{var}} + \beta \mathcal{L}_{\text{cov}}$,
+computed on a learned projection $r = h_\psi(z)$ rather than directly on $z$.
+
+\paragraph{SIGReg}~\citep{balestriero2025lejepaprovablescalableselfsupervised}
+takes a different route. It identifies the isotropic Gaussian $\mathcal{N}(0, I)$
+as the optimal embedding distribution and enforces it by testing Gaussianity
+along random 1D projections $\xi_p$,
+\begin{equation}
+\mathcal{R}_{\text{SIGReg}}(Z) = \frac{1}{P}\sum_{p=1}^{P} G(Z\xi_p),
+\label{eq:sigreg}
+\end{equation}
+where $G$ is the Epps--Pulley Gaussianity statistic. It has a single
+hyperparameter $\lambda$ and linear time and memory, which tends to make it more
+forgiving to tune than VICReg's two coefficients (\cref{fig:image_sweep}).
+
+\begin{gotchabox}
+Watch the variance loss. If $\mathcal{L}_{\text{var}}$ shoots up and stays high
+while the prediction loss drops to near zero, your encoder is collapsing: the
+predictor is winning by making everything constant. The fix is almost always more
+regularization weight or a healthier projector, not less. The image example
+prints these per-term losses every epoch; the world-model example logs them too.
+\end{gotchabox}
+
+\subsection{Two ingredients specific to world models}
+
+\paragraph{Multistep rollout.} Training a predictor only one step ahead, then
+unrolling it autoregressively at test time, creates \emph{exposure bias}: the
+model never saw its own predictions as input. The fix is to roll out $K$ steps
+during training and sum the per-order losses,
+\begin{equation}
+\mathcal{L}_{\text{pred}} = \sum_{k=1}^{K} \mathcal{L}_k,
+\qquad z^{(k)}_{t+1} = g_\phi\big(z^{(k-1)}_{t-v:t},\ u_{t-v:t}\big),\quad z^{(0)}_t = f_\theta(x_{t-w:t}),
+\label{eq:rollout}
+\end{equation}
+where order $k$ counts predictor calls from a ground-truth representation. On
+Moving MNIST, downstream Average Precision improves steeply with $K$ and plateaus
+around $K{=}4$ (\cref{fig:ap}). In code, $K$ is the \code{model.steps} (video) or
+\code{model.nsteps} (AC-video) config knob, consumed inside \code{JEPA.unroll}.
+
+\paragraph{Extra world-model regularizers.} Action-conditioned training in
+\emph{randomized} environments needs two more terms~\citep{sobal2022jepaslowfeatures}.
+A temporal-similarity loss encourages smooth trajectories, and an inverse-dynamics
+(IDM) loss~\citep{PathAMI,curiositydrivenexplorationselfsupervisedprediction}
+forces the representation to retain action-relevant information by predicting the
+action from consecutive states,
+\begin{equation}
+\mathcal{L}_{\text{sim}} = \sum_t \|z_t - z_{t+1}\|_2^2,
+\qquad
+\mathcal{L}_{\text{IDM}} = \sum_t \|a_t - \mathrm{MLP}(z_t, z_{t+1})\|_2^2.
+\label{eq:idm}
+\end{equation}
+The full AC objective combines everything,
+\begin{equation}
+\mathcal{L} = \mathcal{L}_{\text{pred}} + \alpha\mathcal{L}_{\text{var}} + \beta\mathcal{L}_{\text{cov}} + \delta\mathcal{L}_{\text{sim}} + \omega\mathcal{L}_{\text{IDM}}.
+\label{eq:full}
+\end{equation}
+The ablation in the paper is blunt about how load-bearing each term is: removing
+the IDM loss collapses Two Rooms planning from $97\%$ to $1\%$ success, because
+the encoder latches onto spurious background correlations instead of the agent.
+
+\subsection{Planning as energy minimization}
+\label{sec:planning}
+
+Once you have a latent dynamics model, planning is optimization. To reach a goal
+observation $x_g$, search for an action sequence whose imagined rollout
+accumulates low energy against the goal representation,
+\begin{equation}
+E_{\text{plan}}(a_{0:H}; x_0, x_g) = \sum_{t=1}^{H} \|f_\theta(x_g) - \hat{z}_t\|_2^2,
+\qquad \hat{z}_{t+1} = g_\phi(\hat{z}_{t-v:t}, u_{t-v:t}),\ \hat{z}_0 = f_\theta(x_0).
+\label{eq:plan}
+\end{equation}
+Summing over \emph{all} intermediate steps (rather than only the final state)
+rewards efficient paths and is robust to compounding prediction error; it beats
+final-state-only cost by $8$ points on Two Rooms. The library solves
+\cref{eq:plan} with two population-based optimizers, MPPI~\citep{MPPI} (default,
+soft exponential weighting over elite trajectories) and CEM (hard elite
+refitting), both in \file{eb\_jepa/planning.py}. You rarely write planning code;
+you choose a planner config and a cost, and tune the horizon $H$, the number of
+samples $N$, and the number of elites $Q$.
+\section{Environment and Compute Setup}
+\label{sec:setup}
+
+Get this working in the first hour. The detailed compute policy for the shared
+B200 cluster is in \cref{sec:logistics}; here we cover installation, the launch
+workflow, and a smoke test.
+
+\subsection{Install}
+
+The library uses \href{https://docs.astral.sh/uv/}{\code{uv}} for package
+management. The fastest path:
+\begin{lstlisting}[style=bash]
+git clone https://github.com/facebookresearch/eb_jepa.git
+cd eb_jepa
+uv sync                       # create .venv and install deps
+source .venv/bin/activate
+\end{lstlisting}
+If you prefer conda for system packages:
+\begin{lstlisting}[style=bash]
+conda create -n eb_jepa python=3.12 -y && conda activate eb_jepa
+uv pip install -e . --group dev   # editable install + pytest/black/isort
+\end{lstlisting}
+Then point the library at your data and checkpoint directories (add these to
+\code{\textasciitilde/.bashrc}):
+\begin{lstlisting}[style=bash]
+export EBJEPA_DSETS=/path/to/datasets     # where datasets live / download to
+export EBJEPA_CKPTS=/path/to/checkpoints  # where runs are written
+\end{lstlisting}
+
+\begin{tipbox}
+Confirm the install with the test suite before you trust anything:
+\code{uv run pytest tests/}. It exercises the loss equivalences, the planning
+loop, and the JEPA output formats; if it passes, your environment is sane.
+\end{tipbox}
+
+\subsection{On the hackathon cluster (DALIA, B200)}
+\label{sec:cluster}
+
+\textbf{Repo + venv.} Work inside the shared project space \code{/lustre/work/pdl17890/}
+--- \emph{not} your \code{\$HOME}, whose inode quota blocks \code{git}. The \code{uv}
+virtualenv is \emph{architecture-specific} (login nodes are \code{x86\_64}, compute
+nodes are \code{aarch64}), so rather than activating a single \code{.venv}, source the
+provided \file{env.sh}: it selects an arch-specific \code{UV\_PROJECT\_ENVIRONMENT},
+cache, and \code{uv} binary, plus \code{EBJEPA\_CKPTS}.
+\begin{lstlisting}[style=bash]
+cd /lustre/work/pdl17890/<you>/eb_jepa
+source env.sh    # -> venvs/eb_jepa_{x86_64|aarch64}; then `uv pip install ...` as needed
+\end{lstlisting}
+
+\textbf{SLURM.} Submit with \code{--account=pdl17890 --partition=defq --gres=gpu:1};
+exclude the frequently-OOM node with \code{--exclude=dalianvl03}. The cluster is
+offline: set \code{WANDB\_DISABLED=true} \emph{and} put \code{log\_wandb: false} in
+the config --- a CLI \code{--logging.log\_wandb=false} is parsed as the string
+\code{"false"} (truthy) and still triggers a \code{wandb} error.
+
+\textbf{Pre-downloaded datasets} (under the shared project space; group-readable):
+\begin{lstlisting}[style=bash]
+DSETS=/lustre/work/pdl17890/udl806719/datasets
+$DSETS/the_well/gray_scott_reaction_diffusion  # The Well / gray_scott (Track 4)
+$DSETS/speech_commands_v2                       # Speech Commands v2  (Track 2)
+$DSETS/modelnet40/modelnet40_ply_hdf5_2048      # ModelNet40          (Track 6)
+$DSETS/Neuro                                    # TUAB / TUEV EEG     (Track 1)
+\end{lstlisting}
+Point \code{EBJEPA\_DSETS} here (or read them directly); the maze/Two~Rooms data is
+generated on the fly, so it has no path.
+
+\subsection{Run something in two minutes}
+
+Every example is a \code{python -m} module that reads a YAML config and accepts
+dotted overrides on the command line. Start with the image example and a tiny,
+no-logging configuration to prove the pipeline runs:
+\begin{lstlisting}[style=bash]
+python -m examples.image_jepa.main \
+    --fname examples/image_jepa/cfgs/default.yaml \
+    optim.epochs=2 logging.log_wandb=false
+\end{lstlisting}
+The three entry points are:
+\begin{lstlisting}[style=bash]
+python -m examples.image_jepa.main     --fname examples/image_jepa/cfgs/default.yaml
+python -m examples.video_jepa.main     --fname examples/video_jepa/cfgs/default.yaml
+python -m examples.ac_video_jepa.main  --fname examples/ac_video_jepa/cfgs/train/two_rooms/train.yaml
+\end{lstlisting}
+
+\begin{gotchabox}
+All configs default to \code{logging.log\_wandb: true}. For local smoke tests set
+\code{logging.log\_wandb=false} or you will hit a \code{wandb} login prompt. Also
+note datasets download to \code{EBJEPA\_DSETS}; CIFAR-10 and Moving MNIST fetch
+automatically on first run (Moving MNIST is $\sim$800\,MB and needs internet),
+while Two Rooms is generated on the fly.
+\end{gotchabox}
+
+\subsection{The SLURM launcher}
+
+For anything beyond a smoke test, submit to the cluster with the shared launcher
+\file{examples/launch\_sbatch.py}. It wraps single jobs, three-seed sweeps, and
+full hyperparameter grids.
+\begin{lstlisting}[style=bash]
+# One job (dev mode)
+python -m examples.launch_sbatch --example image_jepa \
+    --fname examples/image_jepa/cfgs/default.yaml --single
+
+# Three seeds {1, 1000, 10000}, wandb-averaged (recommended default)
+python -m examples.launch_sbatch --example image_jepa \
+    --fname examples/image_jepa/cfgs/default.yaml --sweep my_experiment
+
+# Full grid from the YAML's sweep.param_grid section
+python -m examples.launch_sbatch --example image_jepa \
+    --fname examples/image_jepa/cfgs/default.yaml --sweep my_grid \
+    --full-sweep --use-wandb-sweep --array-parallelism 8
+\end{lstlisting}
+Swap \code{image\_jepa} for \code{video\_jepa} or \code{ac\_video\_jepa}. Key
+flags: \code{--single} (one dev job), \code{--sweep NAME} (name your run group),
+\code{--full-sweep} (read \code{sweep.param\_grid} from the config),
+\code{--use-wandb-sweep} (the wandb sweep UI), and \code{--array-parallelism N}
+(cap concurrent jobs, which matters a lot on a shared cluster, see
+\cref{sec:logistics}).
+
+\begin{gotchabox}
+The launcher's default SLURM settings (partition, account, memory) at the top of
+\file{examples/launch\_sbatch.py} point at the original authors' cluster. On the
+hackathon cluster use \code{--account=pdl17890 --partition=defq} (and
+\code{--exclude=dalianvl03}), as in \cref{sec:cluster}. Do not burn an hour
+debugging a queue rejection; ask. See \cref{sec:logistics}.
+\end{gotchabox}
+
+\subsection{Where runs land, and how to compare them}
+
+Runs are written under \code{\$EBJEPA\_CKPTS/\{example\}/} with an auto-named
+experiment folder encoding the key hyperparameters, e.g.\
+\code{resnet\_vicreg\_proj\_bs256\_ep300\_std1.0\_cov80.0\_seed1}. Three-seed
+sweeps share a wandb run \emph{name} so you can group by name in the UI to get
+mean and standard error automatically. To compare a before/after change, change
+\emph{one} thing, keep the same seed set, and read the matched-epoch metric.
+
+\begin{tipbox}
+The recommended scientific unit is the three-seed sweep, not a single run. JEPA
+training has real seed variance, and a one-point ``improvement'' from a single
+run is usually noise. With B200s you can afford three seeds; budget for it.
+\end{tipbox}
+\section{The Three Examples: Run It, Read It, Tweak It}
+\label{sec:examples}
+
+The library is built around one idea: the training loop, the rollout, and the
+losses are modality-agnostic and live in the shared \file{eb\_jepa/} package; each
+example in \file{examples/} is a thin \file{main.py} that assembles an encoder, a
+predictor, and a regularizer, then calls \code{JEPA.unroll}. Once you have read
+one example, you have read them all. We go through them in order of increasing
+complexity. For each: how to run it, the handful of files worth reading, the
+config knobs that matter, and what to tweak first.
+
+\begin{notebox}
+There is no central ``registry'' of encoders or losses. Components are plain
+\code{nn.Module}s wired together by hand inside each example's \file{main.py},
+sometimes behind a small \code{if cfg.model.type == "..."} branch. To add your
+own, you edit the builder in \file{main.py} (and occasionally add a class to
+\file{eb\_jepa/architectures.py} or \file{eb\_jepa/losses.py}). \Cref{sec:extension}
+is the map.
+\end{notebox}
+
+% ===========================================================================
+\subsection{Image-JEPA: self-supervised features on CIFAR-10}
+\label{sec:image}
+
+\paragraph{What it teaches.} The purest form of the recipe: no predictor, no
+time. Two augmented views of an image, pull their representations together, and
+keep them from collapsing with VICReg or SIGReg. A linear probe trained online
+reports classification accuracy each epoch ($\sim$91\% with SIGReg, $\sim$90\%
+with VICReg at 300 epochs).
+
+\paragraph{Run it.}
+\begin{lstlisting}[style=bash]
+# ResNet-18 + VICReg (default)
+python -m examples.image_jepa.main --fname examples/image_jepa/cfgs/default.yaml
+# ResNet-18 + SIGReg
+python -m examples.image_jepa.main --fname examples/image_jepa/cfgs/sigreg.yaml
+# ViT-S + VICReg
+python -m examples.image_jepa.main --fname examples/image_jepa/cfgs/transformers.yaml
+\end{lstlisting}
+There is no separate eval step: the probe accuracy \code{val\_acc} is logged every
+epoch during pretraining.
+
+\paragraph{Read it.}
+\begin{itemize}[leftmargin=1.4em,itemsep=1pt,topsep=2pt]
+  \item \file{examples/image\_jepa/dataset.py} returns two augmented views per
+    image (crop, color jitter, grayscale, solarize, flip).
+  \item \file{examples/image\_jepa/main.py}: encoder built at lines
+    \code{435--468}; loss chosen at \code{518--522}; the batch loop with the
+    online probe at \code{275--321}; the epoch loop at \code{539--605}.
+  \item \file{eb\_jepa/losses.py}: \code{VICRegLoss} and \code{BCS} (the SIGReg
+    implementation) take two views and return a loss dict.
+\end{itemize}
+
+\paragraph{Key knobs (\code{cfgs/default.yaml}).}
+\begin{lstlisting}[style=yml]
+model:  {type: resnet, use_projector: true, proj_hidden_dim: 2048, proj_output_dim: 2048}
+loss:   {type: vicreg, std_coeff: 1.0, cov_coeff: 80.0, lmbd: 10.0}  # lmbd used iff type=bcs
+optim:  {epochs: 300, lr: 0.3, weight_decay: 1.0e-4}                  # LARS + cosine warmup
+data:   {batch_size: 256}
+\end{lstlisting}
+
+\paragraph{Tweak it first.}
+\begin{itemize}[leftmargin=1.4em,itemsep=1pt,topsep=2pt]
+  \item Swap the regularizer: \code{loss.type=bcs loss.lmbd=10}. SIGReg has one
+    coefficient and is more forgiving (\cref{fig:image_sweep}).
+  \item Swap the backbone: \code{model.type=vit\_s}. Compare convergence and final
+    accuracy at equal epochs.
+  \item Ablate the projector: \code{model.use\_projector=false}. Expect a $\sim$3
+    point accuracy drop, a clean demonstration of why the regularizer is computed
+    in a projected space.
+\end{itemize}
+
+\begin{gotchabox}
+Bad regularization weights collapse this model fast. The paper's sweep shows
+\code{std=100, cov=100} dropping VICReg to $10\%$ (chance) while \code{std=1, cov=100}
+reaches $90\%$. If \code{val\_acc} is stuck near $10\%$, you are collapsed, not
+under-trained. Also: the ViT \code{patch\_size} is currently hardcoded in
+\file{main.py}, so the \code{model.patch\_size} YAML key is ignored for ViT.
+\end{gotchabox}
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.86\linewidth]{figures/aggregated_perf_image.pdf}
+\caption{\textbf{Hyperparameter sensitivity on CIFAR-10.} SIGReg (right) stays
+stable across a naive sweep while VICReg (left) reaches a similar peak but needs
+more careful tuning. Collapsed runs flatline near chance accuracy. Use this as
+your mental model when a new run will not improve: suspect collapse before
+suspecting capacity.}
+\label{fig:image_sweep}
+\end{figure}
+
+% ===========================================================================
+\subsection{Video-JEPA: temporal prediction on Moving MNIST}
+\label{sec:video}
+
+\paragraph{What it teaches.} The predictor wakes up. Frames are encoded, the past
+representations are context, and the model predicts the next frame's
+representation, unrolled $K$ steps to fight exposure bias. A detection head and a
+pixel decoder (both trained on detached features, purely for evaluation) let you
+score Average Precision and watch the rollout.
+
+\paragraph{Run it.}
+\begin{lstlisting}[style=bash]
+python -m examples.video_jepa.main --fname examples/video_jepa/cfgs/default.yaml
+# fewer rollout steps, larger batch:
+python -m examples.video_jepa.main --fname examples/video_jepa/cfgs/default.yaml \
+    model.steps=2 data.batch_size=128
+\end{lstlisting}
+
+\paragraph{Read it.}
+\begin{itemize}[leftmargin=1.4em,itemsep=1pt,topsep=2pt]
+  \item \file{eb\_jepa/datasets/moving\_mnist.py}: \code{MovingMNISTDet}, two
+    bouncing digits; the dataset, not the example, owns the data.
+  \item \file{examples/video\_jepa/main.py}: model assembled at \code{128--142}
+    (\code{ResNet5} encoder, \code{ResUNet} predictor wrapped by
+    \code{StateOnlyPredictor}, \code{VCLoss}, \code{SquareLossSeq}); training step
+    at \code{191--204}.
+  \item \file{eb\_jepa/jepa.py}: \code{unroll} in \code{parallel} mode, the
+    $K$-step loop, at \code{142--157}. This is the heart of temporal training.
+\end{itemize}
+
+\paragraph{Key knobs (\code{cfgs/default.yaml}).}
+\begin{lstlisting}[style=yml]
+model: {dobs: 1, henc: 32, dstc: 16, hpre: 32, steps: 4}   # steps = K rollout depth
+loss:  {std_coeff: 10.0, cov_coeff: 100.0}
+optim: {epochs: 50, lr: 1.0e-3}
+data:  {batch_size: 64}
+\end{lstlisting}
+
+\paragraph{Tweak it first.}
+\begin{itemize}[leftmargin=1.4em,itemsep=1pt,topsep=2pt]
+  \item Sweep the rollout depth \code{model.steps} $\in \{1,2,4,8\}$ and plot AP
+    versus prediction horizon (\cref{fig:ap}). This reproduces the paper's central
+    video result in an afternoon.
+  \item Replace the spatial \code{ResUNet} predictor with the GRU
+    \code{RNNPredictor} (already in \file{eb\_jepa/architectures.py}) and compare.
+\end{itemize}
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.62\linewidth]{figures/AP_vs_t.pdf}
+\caption{\textbf{Multistep rollout helps, and saturates.} Average Precision of
+the autoregressive prediction versus horizon, for models trained with $K \in
+\{1,2,4,8\}$ rollout steps. Training with longer rollouts aligns training with
+autoregressive inference; the Pareto knee is around $K{=}4$. A clean, cheap result
+to reproduce or extend to a new temporal modality.}
+\label{fig:ap}
+\end{figure}
+
+% ===========================================================================
+\subsection{AC-Video-JEPA: a world model you can plan with}
+\label{sec:acvideo}
+
+\paragraph{What it teaches.} The full stack: an action-conditioned latent dynamics
+model, the two world-model regularizers ($\mathcal{L}_{\text{sim}}$ and the
+critical $\mathcal{L}_{\text{IDM}}$), and goal-conditioned planning by energy
+minimization. The agent navigates a ``Two Rooms'' environment whose wall and door
+are randomized per trajectory, so the task is non-monotonic (sometimes you must
+move \emph{away} from the goal to reach it). The best model plans at $97\%$ success
+with MPPI.
+
+\paragraph{Run it (train, then plan).}
+\begin{lstlisting}[style=bash]
+# Train the world model
+python -m examples.ac_video_jepa.main --fname examples/ac_video_jepa/cfgs/train/two_rooms/train.yaml
+# Evaluate planning on a trained checkpoint (runs unroll + planning eval)
+python -m examples.ac_video_jepa.main \
+    --meta.model_folder /path/to/run --meta.eval_only_mode True
+\end{lstlisting}
+Planning uses MPPI by default (\code{cfgs/planning\_mppi.yaml}); point
+\code{eval.plan\_cfg\_path} at \code{cfgs/planning\_cem.yaml} for CEM.
+
+\paragraph{Read it.}
+\begin{itemize}[leftmargin=1.4em,itemsep=1pt,topsep=2pt]
+  \item \file{eb\_jepa/datasets/two\_rooms/}: the environment (\code{DotWall}), the
+    dataset, and the data-generation pipelines (online / streaming / offline).
+  \item \file{examples/ac\_video\_jepa/main.py}: model built at \code{176--230}
+    (\code{ImpalaEncoder}, \code{RNNPredictor}, action encoder
+    \code{nn.Identity()}, \code{InverseDynamicsModel}, \code{VC\_IDM\_Sim\_Regularizer});
+    training step calling \code{jepa.unroll(..., unroll\_mode="autoregressive")} at
+    \code{334--343}.
+  \item \file{eb\_jepa/planning.py}: \code{CEMPlanner} and \code{MPPIPlanner}, the
+    goal-distance objective \code{ReprTargetDistMPCObjective}, and the eval entry
+    points \code{main\_eval} / \code{main\_unroll\_eval}.
+\end{itemize}
+
+\paragraph{Key knobs.}
+\begin{lstlisting}[style=yml]
+# cfgs/train.yaml
+model:  {encoder_architecture: impala, dobs: 2, dstc: 32, nsteps: 8}  # nsteps = K
+  regularizer: {cov_coeff: 8, std_coeff: 16, sim_coeff_t: 12, idm_coeff: 1}
+optim:  {epochs: 12, lr: 0.001}
+data:   {batch_size: 384}
+# cfgs/planning_mppi.yaml
+planner: {planner_name: mppi, plan_length: 90, n_iters: 20, num_samples: 200, num_elites: 20, temperature: 0.005}
+\end{lstlisting}
+
+\paragraph{Tweak it first.}
+\begin{itemize}[leftmargin=1.4em,itemsep=1pt,topsep=2pt]
+  \item Reproduce the headline ablation: set \code{model.regularizer.idm\_coeff=0}
+    and watch planning success collapse toward $1\%$. Then zero
+    \code{std\_coeff}, \code{cov\_coeff}, \code{sim\_coeff\_t} one at a time.
+  \item Compare planners (MPPI vs CEM) and the cost design
+    (\code{planning\_objective.sum\_all\_diffs} true vs false, i.e.\ cumulative vs
+    final-state cost). Cumulative is worth $\sim$8 points.
+  \item Trade planning compute for success: sweep \code{num\_samples} and
+    \code{plan\_length} and report success-versus-wall-clock.
+\end{itemize}
+
+\begin{gotchabox}
+The action dimension \code{action\_dim=2} is hardcoded in several places
+(\file{main.py}, \code{InverseDynamicsModel}, the planners). If you retarget this
+example to a new control problem, grep for \code{action\_dim} and change all of
+them together. And remember: in randomized environments the IDM loss is what keeps
+the encoder honest, do not drop it.
+\end{gotchabox}
+\section{Extension Points: The Files You Will Actually Edit}
+\label{sec:extension}
+
+This is the reference you will come back to. Extending the library is not
+mysterious: there is no plugin system to learn. You add a plain \code{nn.Module}
+and wire it into an example's \file{main.py} builder. \Cref{tab:extension} is the
+``I want to\ldots{} $\to$ edit this'' map; the rest of the section explains the
+two contracts that matter (the encoder/predictor I/O shape, and the regularizer
+return signature).
+
+\begin{table}[h]
+\centering
+\caption{\textbf{Where to make each kind of change.} ``Builder'' means the model
+assembly block near the top of the relevant \file{examples/*/main.py}.}
+\label{tab:extension}
+\small
+\begin{tabular}{p{4.6cm}p{9.2cm}}
+\toprule
+I want to\ldots & Edit \\
+\midrule
+Add an encoder for a new modality & New \code{nn.Module} in \file{eb\_jepa/architectures.py}; wire it into the builder (\file{image\_jepa/main.py}$\sim$435, or the hardcoded constructor in \file{video\_jepa/main.py}$\sim$130 / \file{ac\_video\_jepa/main.py}$\sim$186). \\
+Add a predictor & New \code{nn.Module} in \file{architectures.py} exposing \code{is\_rnn} and \code{context\_length}; wire into the builder. \\
+Add / change a regularizer & New class in \file{eb\_jepa/losses.py}; instantiate in the builder, or add an \code{elif cfg.loss.type} branch (image). \\
+Add a dataset / modality & New \code{Dataset} (or \code{TrajDataset}) under \file{eb\_jepa/datasets/}; for the world-model path, add an \code{env\_name} branch in \file{eb\_jepa/datasets/utils.py:init\_data} (it currently rejects anything but \code{two\_rooms}); for the image path, edit the dataset block in \file{image\_jepa/main.py}$\sim$398. \\
+Add a planner or planning cost & New class in \file{eb\_jepa/planning.py} plus an entry in \code{planner\_name\_map} / \code{objective\_name\_map}. \\
+Change rollout depth, coefficients & Config only: \code{model.steps}/\code{model.nsteps}, \code{std\_coeff}, \code{cov\_coeff}, \code{sim\_coeff\_t}, \code{idm\_coeff}, \code{loss.lmbd}. \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{The central object: \texttt{JEPA.unroll}}
+
+Everything funnels through one class, \code{JEPA} in \file{eb\_jepa/jepa.py},
+constructed as \code{JEPA(encoder, action\_encoder, predictor, regularizer,
+predcost)}. Its \code{unroll(observations, actions, nsteps, unroll\_mode, ...)}
+method does, in order: encode the observations to \code{state}; if computing loss,
+call \code{regularizer(state, actions)}; encode the actions; then roll the
+predictor forward and accumulate the prediction cost. Two rollout modes:
+
+\begin{itemize}[leftmargin=1.4em,itemsep=2pt,topsep=2pt]
+  \item \code{unroll\_mode="parallel"} (used by \code{video\_jepa}): convolutional
+    predictors predict all timesteps at once, refeeding a few ground-truth context
+    frames; the $K$-step loop is at \file{jepa.py}\code{:142--157}.
+  \item \code{unroll\_mode="autoregressive"} (used by \code{ac\_video\_jepa} and
+    any RNN predictor): step-by-step with a sliding context window; loop at
+    \file{jepa.py}\code{:161--190}.
+\end{itemize}
+\code{JEPA} chooses behavior by reading \code{getattr(predictor, "is\_rnn", False)}
+and \code{predictor.context\_length}. So your predictor mostly needs to declare
+those two attributes correctly and the rest follows.
+
+\subsection{Contract 1: encoder and predictor tensor shapes}
+
+The temporal examples speak in 5D tensors \code{[B, C, T, H, W]} (batch, channels,
+time, height, width). The mixin \code{TemporalBatchMixin} in
+\file{eb\_jepa/nn\_utils.py} folds time into the batch for you, so a 2D encoder can
+be written as if it only ever sees \code{[B, C, H, W]}; subclass it and implement
+\code{\_forward}. Encoders output a representation \code{[B, D, T, H', W']} (the
+\code{ImpalaEncoder} pools to \code{H'{=}W'{=}1}, i.e.\ one vector per frame). A
+predictor implements \code{forward(state, action) -> [B, D, T, ...]} and declares:
+
+\begin{lstlisting}[style=py]
+class MyPredictor(nn.Module):
+    is_rnn = False          # True -> autoregressive single-step unroll
+    context_length = 2      # how many context frames it consumes
+    def forward(self, state, action):
+        ...                 # return predicted next-step representation(s)
+\end{lstlisting}
+
+\begin{tipbox}
+For a new modality with no spatial grid (a 1D time series, a feature vector per
+step), the cleanest path is the GRU \code{RNNPredictor} (it sets
+\code{is\_rnn=True}, \code{context\_length=0}) plus an encoder that outputs
+\code{[B, D, T, 1, 1]}. You inherit the autoregressive rollout and planning for
+free. Reshape your samples to that 5D convention and most of the spatial machinery
+becomes a no-op.
+\end{tipbox}
+
+\subsection{Contract 2: the regularizer return signature}
+
+There are two regularizer conventions, matching the two settings:
+
+\begin{itemize}[leftmargin=1.4em,itemsep=2pt,topsep=2pt]
+  \item \textbf{Sequence regularizers} (video / world model) accept
+    \code{(state, actions)} and return a triple
+    \code{(weighted\_loss, unweighted\_loss, loss\_dict)}. This is what
+    \code{JEPA.unroll} expects. Models: \code{VCLoss} (variance+covariance) and
+    \code{VC\_IDM\_Sim\_Regularizer} (the full world-model regularizer).
+  \item \textbf{Two-view SSL losses} (image) accept \code{(z1, z2)} and return a
+    dict with a \code{"loss"} key plus per-term entries. Models: \code{VICRegLoss}
+    and \code{BCS} (SIGReg). The image training loop logs every extra key in the
+    dict automatically, so new sub-losses show up in logging with no extra work.
+\end{itemize}
+
+Match whichever contract fits your setting and the rest of the loop is untouched.
+Building blocks you can reuse to compose a new regularizer live in
+\file{eb\_jepa/losses.py}: \code{HingeStdLoss} (variance), \code{CovarianceLoss},
+\code{TemporalSimilarityLoss}, \code{InverseDynamicsLoss}, and the \code{BCS}
+Gaussianity statistic.
+
+\subsection{Adding a dataset: the one real dispatch}
+
+For image-style two-view data, edit the dataset block in
+\file{image\_jepa/main.py} (around line 398) to branch on \code{cfg.data.dataset}
+and adjust \code{num\_classes} and the normalization constants. For the
+world-model path, \file{eb\_jepa/datasets/utils.py:init\_data} is the single point
+that maps an \code{env\_name} to data loaders, and it currently raises for any
+\code{env\_name} other than \code{two\_rooms}. Adding a new environment or
+trajectory dataset means implementing a \code{TrajDataset} (which yields
+\code{(obs, action, state, ...)} slices via \code{TrajSlicerDataset}) and adding
+your branch there. This is the most involved extension, so scope it early.
+
+\begin{gotchabox}
+Per-feature normalization is not optional for new modalities. The variance term in
+VICReg measures per-dimension standard deviation; if one input channel dwarfs the
+others (common in EEG, audio, sensor fusion), it will dominate both the encoder and
+the regularizer. Normalize each channel/feature (z-score or robust scaling) before
+it enters the encoder.
+\end{gotchabox}
+\section{Project Tracks}
+\label{sec:tracks}
+
+Below is a menu, not a syllabus. Pick one track, or use one as a springboard for
+your own idea. Each track names a difficulty, the example it forks, a 24-hour
+goal, the files you will touch, and a success metric. Difficulty badges:
+\diffeasy{} is reachable by most teams and a safe first project; \diffmed{} is a
+solid full-day project; \diffhard{} is high-risk, high-reward, attempt it only if
+your baseline is already running.
+
+\begin{notebox}
+\textbf{The reading list.} A curated, per-track bibliography lives in
+\code{references/README.md} at the repo root: one folder per paper
+(\code{references/paper/<slug>/} with the PDF and a structured \code{SUMMARY.md}),
+organized into a \textbf{Core} set (EB-JEPA and the JEPA world-model line it builds
+on) plus three maturity tiers, every row tagged with the modality or track it
+serves. Find the prior work for your track there, and read its \code{SUMMARY.md}
+before the PDF.
+\end{notebox}
+
+\paragraph{What makes a good new-modality target.} The headline theme is
+\emph{continuous, high-dimensional, noisy} data, exactly where predicting in pixel
+or sample space is wasteful and predicting in a learned latent space shines. A
+good target has: (i) abundant unlabeled data for pretraining; (ii) a small labeled
+set for a downstream probe; (iii) temporal or multi-view structure the predictor
+can exploit; and (iv) enough noise that reconstruction would be a bad idea. EEG
+(Track~1) is the worked example of all four.
+
+% ===========================================================================
+\subsection{Group A: Carry the JEPA recipe to a new modality}
+
+\begin{trackbox}{Track 1 (Flagship) --- EEG abnormality detection on TUAB \hfill \diffmed{}/\diffhard{}}
+\textbf{The idea.} Pretrain a JEPA on raw clinical EEG, then linear-probe it to
+classify recordings as normal vs abnormal. This mirrors the EEG foundation model
+LaBraM~\citep{LaBraM} but replaces its
+VQ tokenizer and Fourier-spectrum reconstruction with a pure joint-embedding
+objective: \emph{predict patch representations in latent space}, never the noisy
+raw signal. That structural choice is the point. LaBraM had to reconstruct the
+spectrum because raw-EEG reconstruction would not converge; a JEPA sidesteps the
+problem entirely, since the target encoder is free to discard unpredictable
+artifacts.
+
+\smallskip
+\textbf{Data.} TUH Abnormal EEG Corpus (TUAB), a labeled subset of the TUH EEG
+Corpus~\citep{TUEG}: $\sim$2{,}717 training and 276 evaluation recordings, binary normal/abnormal,
+in EDF format. Pretrain on a small slice of the larger unlabeled TUH corpus (tens
+to $\sim$100 hours is plenty for 24h; do not try to ingest the full corpus).
+Standardize to a common $\sim$21--23 channel montage at 200\,Hz, bandpass
+$0.1$--$75$\,Hz, 60\,Hz notch, z-score per channel.
+
+\smallskip
+\textbf{Beyond TUAB.} The same TUH family gives a natural difficulty ladder for the
+\emph{same} pretrained encoder: \textbf{TUEV} (TUH EEG Events) is a harder 6-class
+event-classification task (e.g. spike/sharp-wave, GPED, PLED, eye-movement,
+artifact, background), and the broader unlabeled \textbf{TUEG} corpus is the
+pretraining pool. A strong project pretrains once and probes both TUAB
+(binary, easy) and TUEV (6-class, hard) to show where the recipe holds and where it
+strains.
+
+\smallskip
+\textbf{More TUH corpora available locally (downloaded for this hackathon).} Two
+additional labeled task corpora extend the difficulty ladder for the \emph{same}
+frozen encoder, beyond TUAB/TUEV: \textbf{TUAR} (TUH EEG Artifact Corpus,
+\code{TUAR\_RAW\_DATA}) --- per-segment \emph{artifact} detection/typing (eye movement,
+muscle, chewing, shiver, electrode, instrument artifacts on the \code{01\_tcp\_ar}
+montage), a clinically useful and noise-robust probe; and \textbf{TUEP} (TUH EEG
+Epilepsy Corpus, \code{TUEP\_RAW\_DATA}) --- \emph{patient-level} epilepsy vs
+no-epilepsy classification (\code{00\_epilepsy} / \code{01\_no\_epilepsy}, multi-session
+per subject, \code{01\_tcp\_ar} and \code{02\_tcp\_le} montages), which forces
+subject-disjoint splits and tests whether the representation transfers to a coarse,
+patient-level label rather than a per-window one. Both are raw EDF (same preprocessing
+as TUAB: common montage, 200\,Hz, bandpass, per-channel z-score) and reuse the existing
+linear-probe harness.
+
+\smallskip
+\textbf{Two framings (start with the first).}
+\begin{itemize}[leftmargin=1.4em,itemsep=1pt,topsep=2pt]
+  \item \emph{Temporal} (video-JEPA style, \cref{sec:video}): cut each channel into
+    1-second patches; encode the context window; predict the \emph{next} 1-second
+    window's representation across all channels. This is next-frame prediction with
+    frames $=$ time windows.
+  \item \emph{Masked} (image-JEPA style, \cref{sec:image}): build the
+    channel$\times$time patch grid, mask a fraction of patches, predict their
+    representations from the visible ones; use EEG augmentations (channel dropout,
+    amplitude scaling, time jitter) for the two-view variant.
+\end{itemize}
+
+\smallskip
+\textbf{Files to touch.} A new \code{Dataset} under \file{eb\_jepa/datasets/} that
+loads EDF (use \code{MNE-Python} or \code{braindecode}'s \code{TUHAbnormal}) and
+yields \code{[B, C, T, 1, 1]} patch tensors; a small conv-patch or 1D-conv encoder
+in \file{architectures.py}; the GRU \code{RNNPredictor} for the temporal framing; a
+linear probe modeled on \file{image\_jepa/eval.py}.
+
+\smallskip
+\textbf{Metric.} Balanced Accuracy on the 276-recording eval set (also report
+AUROC). Context: supervised CNNs reach $\sim$0.79 Balanced Accuracy, BIOT
+$\sim$0.796, fine-tuned LaBraM-Base $\sim$0.81. A frozen JEPA \emph{linear probe}
+clearing $\sim$0.78 would be a genuinely strong hackathon result.
+
+\smallskip
+\textbf{Gotchas.} Variable montages across recordings (restrict to the common 10--20
+set for simplicity, or use per-electrode embeddings); per-channel normalization is
+mandatory; class-aware metric because the eval split is mildly imbalanced. Report
+metrics at the recording level, not the raw 10-second-window level.
+
+\smallskip
+\textbf{poc:} TUAB frozen linear-probe \textbf{AUROC 0.877} (patient-disjoint split,
+near supervised SOTA); on the harder TUEV 6-class event task, $\sim$0.68 AUROC.
+TUAR (artifact) and TUEP (patient-level epilepsy) are downloaded and ready as further
+probes for the same encoder.
+\emph{Data:} \code{/lustre/work/pdl17890/udl806719/datasets/Neuro} ---
+\code{TUAB-TUEV/} (TUAB+TUEV) and \code{TUAB-TUEV-PREPROCESSED/}
+(\code{TUAR\_RAW\_DATA}, \code{TUEP\_RAW\_DATA}, \code{TUEV\_PREPROCESSED}) ~|~ HF
+\href{https://huggingface.co/datasets/DBClab/TUAB-TUEV-PREPROCESSED}{DBClab/TUAB-TUEV-PREPROCESSED}.
+\end{trackbox}
+
+\begin{trackbox}{Track 2 --- Audio / speech representation JEPA \hfill \diffmed{}}
+\textbf{Goal.} Self-supervised audio features, probed on keyword spotting (Speech
+Commands) or environmental sound (ESC-50/UrbanSound). Treat log-mel spectrograms as
+single-channel ``images'' for the image-JEPA masked/augmented setting, or treat mel
+frames as a temporal sequence for the video-JEPA setting. \textbf{Files:} a
+spectrogram dataset; reuse the ResNet or ViT encoder. \textbf{Metric:} linear-probe
+accuracy on the downstream classification set. \textbf{Why JEPA:} audio is
+continuous and noisy; latent prediction avoids modeling phase and background noise.
+
+\smallskip
+\textbf{poc:} Speech Commands (35-class, chance 2.86\%): linear-probe \textbf{72.6\%}
+with log-mel spectrograms vs \textbf{33.2\%} with the raw 1D waveform; the
+augmentation (VICReg) variant beat a masked-predictive one.
+\emph{Data:} \code{/lustre/work/pdl17890/udl806719/datasets/speech\_commands\_v2} ~|~
+\href{http://download.tensorflow.org/data/speech_commands_v0.02.tar.gz}{Speech Commands v0.02}
+(Google; not on HF).
+\end{trackbox}
+
+\begin{trackbox}{Track 3 --- Wearable biosignals: ECG / IMU / PPG \hfill \diffeasy{}/\diffmed{}}
+\textbf{Goal.} JEPA on accelerometer/gyroscope or ECG streams; probe on Human
+Activity Recognition (UCI-HAR, PAMAP2) or arrhythmia (PhysioNet). These are
+low-spatial multivariate time series, the ideal fit for the GRU predictor and
+\code{[B, C, T, 1, 1]} convention. \textbf{Files:} a windowed time-series dataset;
+1D-conv encoder; \code{RNNPredictor}; linear probe. \textbf{Metric:} probe accuracy
+/ F1. The lowest-friction new-modality track, good for a first-time team.
+\end{trackbox}
+
+\begin{trackbox}{Track 4 --- Latent dynamics of physical fields (The Well) \hfill \diffmed{}/\diffhard{}}
+\textbf{Goal.} The Well~\citep{the_well} is a 15\,TB collection of 16
+physics-simulation datasets (fluid dynamics, magneto-hydrodynamics, astrophysics,
+acoustics, active matter) stored as spatiotemporal fields, the continuous,
+high-dimensional modality JEPAs were made for, with a ready-made PyTorch loader.
+Train a video-JEPA-style model to predict the next field state in latent space, then
+answer the open question: does latent prediction give more stable long-horizon
+rollouts than the field-space neural-operator surrogates (FNO, U-Net) that The Well
+ships as baselines? \textbf{Files:} wrap \code{the\_well.data.WellDataset} to emit
+\code{[B, C, T, H, W]} clips; reuse the \code{ResUNet} spatial predictor and
+\code{VCLoss}; add a small decoder from latent back to the field for scoring.
+\textbf{Data.} Start at the small end of the 6.9\,GB--5.1\,TB range, a 2D set such
+as \code{active\_matter} or \code{gray\_scott\_reaction\_diffusion}; do not pull the
+multi-TB sets. \textbf{Metric:} VRMSE of the decoded autoregressive rollout vs the
+FNO/U-Net baseline at several horizons. A clean JEPA-versus-surrogate comparison on
+real physics (for \emph{observational} rather than simulated fields,
+ERA5/WeatherBench is a harder variant).
+
+\smallskip
+\textbf{poc:} on \code{gray\_scott\_reaction\_diffusion}, the latent rollout beats a
+persistence baseline \textbf{4.5$\times$} at horizon 6 and frozen latents separate
+the 6 regimes at \textbf{0.92} accuracy (chance 0.167). But in decoded field-space
+VRMSE the FNO/U-Net surrogates win at \emph{every} horizon $\le$10 --- a
+latent$\to$field decoder floor ($\approx$0.19 VRMSE) caps the JEPA. Answer to the
+open question: here the gain is representational, not pixel-accurate rollout.
+\emph{Data:} \code{/lustre/work/pdl17890/udl806719/datasets/the\_well/gray\_scott\_reaction\_diffusion}
+~|~ HF \href{https://huggingface.co/datasets/polymathic-ai/gray_scott_reaction_diffusion}{polymathic-ai/gray\_scott\_reaction\_diffusion}.
+\end{trackbox}
+
+\paragraph{Forecasting as action-conditioned prediction (Tracks 5--7).} The
+three time-series tracks below share one mapping onto the codebase. The
+AC-video-JEPA (\cref{sec:acvideo}) is a latent dynamics model: given a state and
+an \emph{action}, it predicts the next state's representation. For a time series
+the ``action'' is whatever exogenous or control channel drives the
+system---actuator commands, manipulated set-points, the operating regime, known
+future covariates, or order-flow events---and ``predict the future'' is simply
+forecasting the next state in latent space. Anomaly detection then falls out for
+free: a fault or an attack is a \emph{violation of expectation}, a spike in
+prediction energy against the \emph{realised} future (rather than against a
+planning goal) that the action-conditioned dynamics cannot explain---the same
+signal the intuitive-physics track uses on impossible videos. Concretely: fork
+the AC-video-JEPA, feed it \code{(obs, action)} slices through a new
+\code{TrajDataset} (\cref{sec:extension}), drop the planner, and read off either
+the rollout forecast or the per-step energy. Two gotchas apply to all three: the
+hardcoded \code{action\_dim} (\cref{sec:acvideo}) and mandatory per-channel
+normalization (\cref{sec:extension}). With no control channel, the same recipe
+degenerates to the video-JEPA forecasting setting (\cref{sec:video}).
+
+
+% ===================== PASTE FROM HERE ========================================
+
+\begin{trackbox}{Track 5 --- Scientific multivariate time-series forecasting \hfill \diffmed{}/\diffhard{}}
+\textbf{Goal.} Pretrain a JEPA to predict the next window of a noisy scientific
+multivariate series in latent space, then probe it on long-horizon forecasting or
+regime classification. The research question: does anti-collapse latent prediction
+learn more transferable, less overfit features than direct forecasting on
+non-stationary signals?
+
+\smallskip
+\textbf{Data.} Use the \emph{de facto} long-horizon forecasting (LTSF) suite,
+shipped with fixed train/val/test splits and $\sim$30 baselines in the
+Time-Series-Library (\code{thuml/Time-Series-Library}) and introduced by
+Informer~\citep{Informer} and Autoformer~\citep{Autoformer}: \textbf{Weather} (21
+meteorological channels, 10-min), \textbf{ETT} (transformer oil temperature + 6
+power-load channels, hourly / 15-min), \textbf{Electricity} (321 clients, hourly),
+\textbf{Traffic} (862 road sensors, hourly), and \textbf{ILI} (weekly
+influenza-like-illness counts). For breadth across scientific domains (solar,
+temperature, hospital, nature), the Monash archive~\citep{MonashTSF} offers
+$\sim$25 datasets in a single \code{.tsf} format (\code{Monash-University/monash\_tsf}
+on Hugging Face). For spatiotemporal \emph{fields} rather than vector series, see
+Track~4 (The Well) and ERA5/WeatherBench.
+
+\smallskip
+\textbf{Action-conditioned angle.} \textbf{ETT} is the cleanest fit: condition the
+predictor on the six power-load channels (the ``action'') and forecast the oil
+temperature---a genuinely controlled physical system (thermal response to load).
+More generally, any dataset with \emph{known-future} exogenous covariates
+(calendar, weather driving electricity / traffic) lets \code{q\_omega} encode the
+covariate as the action; with none, drop to the video-JEPA forecasting setting.
+
+\smallskip
+\textbf{Files.} A windowed multivariate dataset wrapping the TSLib loaders (reuse
+their splits verbatim for comparability); a 1D-conv or patch encoder in
+\file{architectures.py}; the GRU \code{RNNPredictor} and the \code{[B, C, T, 1, 1]}
+convention.
+
+\smallskip
+\textbf{Metric.} Forecasting MSE / MAE at the standard horizons
+$\{96, 192, 336, 720\}$ (ILI: $\{24, 36, 48, 60\}$) against the published TSLib
+numbers (DLinear, PatchTST, iTransformer, TimesNet), or a frozen-feature probe vs.\
+a supervised baseline on the same split. Beating a strong linear baseline (DLinear)
+is the bar worth clearing.
+
+\smallskip
+\textbf{poc.} Tested on \textbf{ETTh1} (\code{ailuntz/ETT-small}), TSLib 12/4/4 split,
+input $L=336$, normalized MSE/MAE on test. A predictive JEPA (1D conv encoder +
+\code{RNNPredictor} + EMA target + VICReg anti-collapse) was pretrained SSL on the
+train-window inputs, then a frozen-feature ridge head forecast horizons
+$\{96,192,336,720\}$, against a random-encoder floor, an end-to-end supervised head,
+and an NLinear/DLinear baseline. \emph{The linear baseline dominates by $\sim$5$\times$}
+(MSE \textbf{0.37 / 0.40 / 0.43 / 0.43}, matching the published DLinear numbers ---
+confirming the split/normalization are correct), while frozen-JEPA $\approx$ random
+$\approx$ supervised (MSE $\approx$1.2--2.9). Crucially the \emph{whole global-pooled
+conv-encoder family} fails, not JEPA specifically: the supervised version of the same
+backbone also loses to the linear map, reproducing the Zeng et al.\ (DLinear) lesson
+that a pooled representation discards the level / last-value information ETT rewards;
+latent prediction adds no transfer under this probe. \emph{Caveat:} the probe forecasts
+from a single time-pooled vector --- a fairer JEPA-for-LTSF eval would keep a
+per-patch / per-timestep representation (PatchTST-style) or fine-tune end-to-end, so this
+is evidence against \emph{a global-pooled conv-JEPA representation} here, not against JEPA
+forecasting in general ($n{=}1$ seed, ETTh1 only).
+\emph{Data:} \code{/lustre/work/pdl17890/udl806719/datasets/LTSF/ETT-small}
+~|~ HF \href{https://huggingface.co/datasets/ailuntz/ETT-small}{ailuntz/ETT-small}.
+\end{trackbox}
+
+\begin{trackbox}{Track 6 --- Financial time series: limit order books \& forecasting \hfill \diffmed{}/\diffhard{}}
+\textbf{Goal.} Self-supervised features on high-frequency market data, probed on
+mid-price-movement prediction. The question: can latent prediction extract a usable
+signal from order-book dynamics that survives the brutal noise floor of financial
+data?
+
+\smallskip
+\textbf{Data.} \textbf{FI-2010}~\citep{FI2010} is the standard public limit-order-book
+(LOB) benchmark---often called the ``MNIST of high-frequency trading''---with
+$\sim$4M samples from five Nasdaq Nordic stocks over ten days, the top ten LOB
+levels (40 features: bid/ask price and volume), and 3-class mid-price-direction
+labels (up / stationary / down) at horizons $k \in \{10, 20, 30, 50, 100\}$ ticks;
+the standard protocol trains on the first seven days and tests on the last three.
+For lower-frequency forecasting, the \textbf{Exchange-Rate} set (eight countries'
+daily rates)~\citep{LSTNet} sits in the same LTSF suite as Track~5, and the Monash
+archive~\citep{MonashTSF} adds further financial series.
+
+\smallskip
+\textbf{Action-conditioned angle.} The order book evolves under a stream of
+events---placements, executions, cancellations. Treat that order flow (or
+order-flow imbalance) as the ``action'' driving the book: condition the predictor
+on the incoming event and forecast the next LOB state's representation, then read
+the mid-price direction off the predicted latent.
+
+\smallskip
+\textbf{Files.} A LOB dataset (FI-2010 ships normalized; public PyTorch loaders
+exist, e.g.\ the DeepLOB repositories); a temporal / 1D encoder; \code{RNNPredictor}.
+
+\smallskip
+\textbf{Metric.} 3-class mid-price F1 / accuracy at the standard horizons
+(frozen probe vs.\ supervised), or forecasting MSE / MAE on Exchange-Rate.
+
+\begin{gotchabox}
+Markets are near-efficient and adversarial; mid-price direction is genuinely hard
+and reported scores swing wildly with the label threshold and horizon. A clean
+controlled comparison (JEPA features vs.\ supervised, with the collapse you fought)
+is the win here---\emph{not} a number that looks like alpha. Treat any
+``profitable'' result with deep suspicion and check for look-ahead leakage first.
+\end{gotchabox}
+
+\smallskip
+\textbf{poc.} Tested on
+\href{https://huggingface.co/datasets/thesven/fintime-decoder-dataset}{thesven/fintime-decoder-dataset}
+(697 instruments, 2010--2025; windows of $87$ engineered features $\times\,64$ daily steps).
+A predictive JEPA (1D conv encoder + \code{RNNPredictor} + EMA target + VICReg anti-collapse)
+was pretrained SSL, frozen, and probed against a random-encoder floor and an end-to-end
+supervised baseline. \emph{Negative result, exactly as the gotcha warns:} on the genuinely
+hard targets (next-step direction / return) the frozen JEPA \emph{does not beat the random
+encoder} (direction AUROC \textbf{0.58} vs random $0.58$ vs supervised $0.69$), and this
+still holds on raw \emph{OHLCV-only} inputs (6 channels); returns are $\approx$chance
+out-of-distribution for every method. The only non-trivial self-supervised signal comes
+from \emph{VICReg, not latent prediction} (volatility-regime acc \textbf{0.94} vs random
+$0.63$). \emph{Takeaway:} daily returns here are too close to efficient-market noise and the
+engineered inputs are already informative, so this dataset cannot separate latent-prediction
+from direct forecasting --- for a fair test of the track's hypothesis prefer a structured
+series with learnable dynamics (the LTSF / Exchange-Rate suites of Track~5, or FI-2010 LOB
+above).
+\emph{Data:} \code{/lustre/work/pdl17890/udl806719/datasets/Finance/fintime\_prep}
+~|~ HF \href{https://huggingface.co/datasets/thesven/fintime-decoder-dataset}{thesven/fintime-decoder-dataset}.
+\end{trackbox}
+
+\begin{trackbox}{Track 7 --- Action-conditioned anomaly prediction \& predictive maintenance \hfill \diffmed{}/\diffhard{}}
+\textbf{The idea.} A JEPA trained only on \emph{healthy} operation learns the
+action-conditioned dynamics of a system; at test time a fault, attack, or
+degradation shows up as a spike in prediction energy---the model expected one
+future and reality delivered another. This is forecasting-based anomaly detection,
+and it is exactly the violation-of-expectation signal the intuitive-physics track
+uses, now on real industrial data with a genuine control channel.
+
+\smallskip
+\textbf{Data (three flavours, each with an action channel).}
+\begin{itemize}[leftmargin=1.4em,itemsep=2pt,topsep=2pt]
+  \item \emph{Cyber-physical attacks.} \textbf{SWaT} and \textbf{WADI}~\citep{SWaT,WADI}
+    are water treatment / distribution testbeds (iTrust, SUTD; request access) with
+    both sensors \emph{and actuators}: SWaT has 51 channels over 7 normal + 4 attack
+    days, WADI 123 channels over 14 + 2. Condition on the actuator commands (pump /
+    valve states); the attacks are the anomalies.
+  \item \emph{Process faults.} The \textbf{Tennessee Eastman Process}~\citep{TEP} is
+    the canonical closed-loop chemical-plant benchmark: 41 measured + \emph{11
+    manipulated} variables, 20 fault types, with a large multi-run simulation
+    set~\citep{riethTEP} (also packaged by \code{AIRI-Institute/fddbenchmark}). The
+    manipulated variables are the control actions, and the hard part is telling a
+    fault from a normal closed-loop control response.
+  \item \emph{Run-to-failure / RUL.} \textbf{NASA C-MAPSS}~\citep{CMAPSS} is
+    \emph{the} prognostics benchmark: turbofan run-to-failure trajectories, 21
+    sensors + \emph{3 operational settings} (altitude, Mach, throttle), four subsets
+    FD001--FD004 of rising difficulty. Condition on the operational settings, track
+    the drift of the latent, and regress remaining useful life.
+\end{itemize}
+
+\smallskip
+\textbf{Methodology caveat.} The popular multivariate sets are flawed: Wu \&
+Keogh~\citep{UCRanomaly} show the NASA telemetry sets (SMAP / MSL) contain trivial,
+mislabeled, end-loaded anomalies, and even SWaT has many constant channels and
+anomalies detectable from a single feature. For a clean, sound \emph{univariate}
+evaluation use their \textbf{UCR Anomaly Archive} (250 curated signals)---it has no
+action channel, so use it to validate the detector and SWaT / TEP / C-MAPSS to
+exercise the action-conditioned story. Report event / range-based F1 and AUROC
+(VUS-PR), not just point-adjusted F1, which inflates scores.
+
+\smallskip
+\textbf{Files.} A new \code{TrajDataset} yielding \code{(obs, action)} slices
+(\cref{sec:extension}) plus an \code{env\_name} branch in
+\file{datasets/utils.py:init\_data}; a 1D-conv encoder; \code{RNNPredictor}; the
+AC-video-JEPA dynamics model (\cref{sec:acvideo}) with the planner removed and a
+prediction-energy anomaly score. Watch the hardcoded \code{action\_dim}
+(SWaT / WADI: dozens of actuators; TEP: 11; C-MAPSS: 3) and normalize every channel.
+
+\smallskip
+\textbf{Metric.} SWaT / WADI / TEP: event-based F1 and AUROC of the energy score,
+healthy-only training. C-MAPSS: RUL RMSE and the NASA asymmetric score (which
+penalises late predictions more) on FD001 first, then the harder FD004.
+\end{trackbox}
+
+
+\begin{trackbox}{Track 8 --- 3D point clouds / LiDAR \hfill \diffhard{}}
+\textbf{Goal.} View-invariant JEPA on point clouds (ModelNet/ShapeNet): two
+augmented samplings/rotations of an object are the two views (image-JEPA setting),
+probed on shape classification. \textbf{Files:} a point-cloud dataset with geometric
+augmentations; a PointNet-style encoder in \file{architectures.py}; reuse
+\code{VICRegLoss}. \textbf{Metric:} linear-probe classification accuracy. Tests
+whether the recipe transfers to an unordered, irregular modality.
+
+\smallskip
+\textbf{poc:} ModelNet40 (40-class, chance 2.5\%): linear-probe \textbf{80.9\%} with
+aligned views, \textbf{64.7\%} under azimuth rotations, \textbf{35.3\%} under full
+SO(3) --- accuracy drops monotonically as the demanded rotation invariance grows.
+\emph{Data:} \code{/lustre/work/pdl17890/udl806719/datasets/modelnet40/modelnet40\_ply\_hdf5\_2048}
+~|~ HF \href{https://huggingface.co/datasets/Msun/modelnet40}{Msun/modelnet40}.
+\end{trackbox}
+
+% ===========================================================================
+\subsection{Group B: Push the vision and robotics examples}
+
+\begin{trackbox}{Track 9 --- Learned cost / value for planning \hfill \diffmed{}/\diffhard{}}
+\textbf{Goal.} Distance-in-latent-space is a crude planning cost. Replace it with a
+learned cost or value function (TD-MPC style~\citep{TDMPC2,TD-MPC}) trained on the
+world model's own rollouts, so the agent optimizes a quantity that correlates with
+task success rather than raw representation distance. \textbf{Files:} a new
+objective class in \file{eb\_jepa/planning.py} registered in
+\code{objective\_name\_map}; a small value head trained alongside the JEPA.
+\textbf{Metric:} Two Rooms success and planning compute vs the distance-cost
+baseline, especially on the hardest non-monotonic episodes. Attacks a limitation
+the paper explicitly calls out as open.
+
+\smallskip
+\textbf{poc:} on a frozen maze world model, the learned value reaches \textbf{37.5\%}
+planning success vs \textbf{6.25\%} for the distance cost ($\sim$6$\times$) under
+matched A$^*$ subgoals; greedy global planning is 0\% for both costs.
+\emph{Data:} maze generated online (no dataset path / HF).
+\end{trackbox}
+
+\begin{trackbox}{Track 10 --- Hierarchical / multi-timescale world model \hfill \diffhard{}}
+\textbf{Goal.} JEPAs here predict at a single temporal resolution; intelligent
+planning wants several. Add a coarse predictor that models long-horizon
+abstractions on top of the fine per-step predictor, and plan with the coarse level
+to cut the search horizon. The paper names its modular encoder/predictor/regularizer
+split as ``a natural starting point'' for exactly this, and no example ships it yet.
+\textbf{Files:} a second predictor and a two-level unroll in a forked
+\code{ac\_video\_jepa/main.py}; a coarse-level temporal-similarity term.
+\textbf{Metric:} long-horizon planning success and wall-clock vs the flat baseline.
+The deepest open robotics direction in the guide.
+
+\smallskip
+\textbf{poc:} on 21$\times$21 mazes, a two-level hierarchy solves them
+\textbf{A$^*$-free at 65.6\% success / SPL 0.62} (matched-budget controls: 0\% for
+greedy and 0\% for a random-walk baseline). Co-training the two levels did
+\emph{not} beat the frozen single-level world model.
+\emph{Data:} maze generated online (no dataset path / HF).
+\end{trackbox}
+
+\begin{trackbox}{Track 11 --- Stress-test the recipe under factors of variation \hfill \diffhard{}}
+\textbf{Goal.} \texttt{eb\_jepa}'s Two Rooms is deliberately tiny. The open question
+is whether the \emph{minimal} recipe (VC + sim + IDM, distance-cost MPPI) survives
+realistic perturbations, and which term breaks first. Train an AC-video-JEPA-style
+model and evaluate planning as you dial up controllable visual, geometric, and
+physical factors of variation, using the environment suites in
+\texttt{stable-worldmodel}~\citep{stableworldmodel} or the diverse planning
+benchmarks in \texttt{jepa-wms}~\citep{terver2026JEPAWMs} rather than hand-building a
+new environment. \textbf{Files:} adapt one of those suites' envs to the
+\code{eb\_jepa} JEPA/planning stack (encoder + \code{JEPA.unroll} + a planner).
+\textbf{Metric:} a success-vs-perturbation curve against the Two Rooms baseline, and
+which regularizer term must be strengthened as the world gets harder. Ambitious but
+high-signal: it tells you where the toy recipe actually ends.
+\end{trackbox}
+
+\begin{trackbox}{Track 12 --- Does intuitive physics emerge? \hfill \diffmed{}}
+\textbf{Goal.} Recent work shows physical intuition emerges from self-supervised
+video pretraining~\citep{garrido2025intuitivephysicsunderstandingemerges}. Test it
+in miniature on the video-JEPA: feed it physically plausible vs impossible Moving
+MNIST sequences (a digit teleporting, passing through a wall, or reversing
+instantly) and ask whether prediction energy in latent space spikes on the
+impossible ones, a violation-of-expectation signal. \textbf{Files:} a probe that
+constructs paired plausible/impossible clips and compares \code{predcost} energy;
+light additions to the video eval. \textbf{Metric:} the energy gap (impossible $>$
+plausible) and how it grows over training. Exploratory, cheap, and genuinely
+open at this scale.
+\end{trackbox}
+
+\begin{tipbox}
+Whatever you pick, the deliverable that wins is a \emph{controlled comparison}: a
+baseline and one change, three seeds each, one figure. ``We ported JEPA to EEG and
+the linear probe hits 0.79 Balanced Accuracy, and here is the collapse we hit at
+zero covariance weight and how we fixed it'' beats a pile of half-finished ideas.
+\end{tipbox}
+\section{Compute, Logistics, and Judging}
+\label{sec:logistics}
+
+\subsection{The compute budget}
+
+We share \textbf{72 NVIDIA B200 GPUs} across \textbf{25 teams} for 24 hours. That
+is about \textbf{2.9 GPUs per team} on average. The good news: every example in
+this library is designed for \emph{single-GPU} training and finishes in a few
+hours, so a team's natural unit of work is ``a few single-GPU jobs in parallel,''
+not one giant distributed run. A three-seed sweep is three single-GPU jobs; a small
+hyperparameter grid is a handful more.
+
+\begin{notebox}
+The numbers and the SLURM details below are the organizers' \emph{proposed}
+policy. The exact \code{--partition}, \code{--account}, per-GPU memory, and any
+fair-share quotas will be confirmed at kickoff and pinned in the event channel. If
+a launch is rejected by the scheduler, it is almost certainly a partition/account
+mismatch, ask in the channel rather than debugging it alone.
+\end{notebox}
+
+\paragraph{Fair-share rules of thumb.}
+\begin{itemize}[leftmargin=1.4em,itemsep=1pt,topsep=2pt]
+  \item Prefer many \emph{single-GPU} jobs over multi-GPU jobs. The examples do not
+    need more than one GPU, and single-GPU jobs schedule faster and waste less.
+  \item Cap your concurrency with \code{--array-parallelism}. A sane ceiling is
+    \textbf{3 concurrent GPUs per team} during the day; if the queue is empty
+    overnight, use more, but yield when teams are waiting.
+  \item Kill dead runs. A collapsed run (flat variance, chance accuracy) will not
+    recover; cancel it and free the GPU rather than letting it burn 12 hours.
+  \item Smoke-test on \code{--single} with \code{optim.epochs} tiny before
+    launching a sweep. A typo that crashes at epoch 0 across 12 array tasks wastes
+    everyone's slots.
+\end{itemize}
+
+\paragraph{Disk and checkpoints.} Runs write to \code{\$EBJEPA\_CKPTS}. Checkpoints
+add up fast across a sweep; keep only the best and the latest, and clean up smoke
+tests. Datasets live in \code{\$EBJEPA\_DSETS}; download a shared copy once per
+node rather than per team where possible (the organizers will pre-stage CIFAR-10,
+Moving MNIST, and any agreed new-modality datasets).
+
+\subsection{Notes on B200 vs the default H100 configs}
+
+The shipped configs are tuned for H100s. B200s have substantially more memory and
+strong \code{bfloat16} throughput, so the defaults will run but leave performance on
+the table. Practical adjustments:
+
+\begin{itemize}[leftmargin=1.4em,itemsep=1pt,topsep=2pt]
+  \item \textbf{Increase batch size.} The image example uses \code{batch\_size=256}
+    and the world model \code{384}; you can likely push these up on a B200. Scale
+    the learning rate accordingly and re-check for collapse.
+  \item \textbf{Keep \code{bfloat16}.} The configs already set \code{use\_amp: true}
+    with \code{bfloat16} (image, world model) or \code{float16} (video). Prefer
+    \code{bfloat16} on B200; if you see NaNs under \code{float16}, switch the video
+    config to \code{bfloat16}.
+  \item \textbf{Try \code{torch.compile}.} The world-model example already supports
+    it; compilation pays off most on the longer temporal rollouts.
+  \item \textbf{Do not over-scale.} A bigger batch is not free accuracy; for SSL it
+    changes the regularization dynamics. Treat any batch-size change as an ablation
+    with its own before/after, not a default win.
+\end{itemize}
+
+\begin{tipbox}
+The bottleneck for these small models is often the data loader, not the GPU. If
+GPU utilization is low, raise \code{data.num\_workers} and enable
+\code{persistent\_workers}/\code{pin\_mem} before reaching for a bigger model. For a
+new modality, a slow EDF/NetCDF reader can starve a B200 completely; pre-process to
+a fast on-disk format (memmap, \code{.npy}, webdataset) once, up front.
+\end{tipbox}
+
+\subsection{Deliverables}
+
+By the 24-hour mark each team submits:
+\begin{enumerate}[leftmargin=1.6em,itemsep=1pt,topsep=2pt]
+  \item \textbf{A repository}, submitted via \textbf{GitHub Classroom} (one repo per
+    group): your fork/branch with all changes, runnable from a single documented
+    command, plus the config(s) you used and a short report (hypothesis, setup,
+    result with at least one figure or table, and one paragraph on what you learned
+    about JEPAs --- especially any collapse you fought).
+  \item \textbf{A 10-minute presentation} to the room (see \cref{sec:presentation}):
+    your hypothesis, the controlled comparison, and one figure or live/recorded
+    artifact (a probe-accuracy curve, a planning rollout GIF, a latent prediction).
+\end{enumerate}
+
+\subsection{The presentation}
+\label{sec:presentation}
+
+\emph{To be done.}
+
+\subsection{How projects are judged}
+
+\Cref{tab:rubric} is the rubric. Note what is \emph{not} on it: raw leaderboard
+position. A negative result, cleanly shown (``latent prediction did not beat the
+supervised baseline on this modality, and here is the evidence and our
+hypothesis''), scores well. Confident hand-waving does not.
+
+\begin{table}[h]
+\centering
+\caption{\textbf{Judging rubric.} Equal weight on understanding and execution;
+creativity and clarity break ties.}
+\label{tab:rubric}
+\small
+\begin{tabular}{lp{9.6cm}}
+\toprule
+Criterion & What we look for \\
+\midrule
+JEPA understanding   & Can the team explain encoder/predictor/regularizer, why collapse happens, and how their design avoids it? \\
+Scientific rigor     & A clear hypothesis and a controlled before/after comparison; seeds and error bars where feasible. \\
+Result               & A real, interpretable outcome (positive or negative) with a figure/number, not just ``it ran.'' \\
+Creativity           & A modality or idea that genuinely stresses the recipe, or an elegant solution to a collapse/scaling problem. \\
+Clarity              & A repo and presentation a non-expert teammate could follow. \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Getting unstuck}
+
+Read the gotcha boxes in \cref{sec:examples} first; most early problems are there.
+For collapse, re-read \cref{sec:recipe} and watch the per-term losses. For anything
+cluster-related, use the event channel. Mentors will run office hours on a posted
+schedule. And remember the meta-advice: lock scope early, get a pipeline running in
+hour five, and stop building in time to measure. Have a great 24 hours.
+
+\bibliographystyle{iclr2026_conference}
+\bibliography{main}
+
+\end{document}

@@ -1,0 +1,386 @@
+\begin{thebibliography}{55}
+\providecommand{\natexlab}[1]{#1}
+\providecommand{\url}[1]{\texttt{#1}}
+\expandafter\ifx\csname urlstyle\endcsname\relax
+  \providecommand{\doi}[1]{doi: #1}\else
+  \providecommand{\doi}{doi: \begingroup \urlstyle{rm}\Url}\fi
+
+\bibitem[Ahmed et~al.(2017)Ahmed, Palleti, and Mathur]{WADI}
+Chuadhry~Mujeeb Ahmed, Venkata~Reddy Palleti, and Aditya~P. Mathur.
+\newblock {WADI}: a water distribution testbed for research in the design of secure cyber physical systems.
+\newblock In \emph{International Workshop on Cyber-Physical Systems for Smart Water Networks (CySWATER)}, pp.\ 25--28, 2017.
+
+\bibitem[Assran et~al.(2023)Assran, Duval, Misra, Bojanowski, Vincent, Rabbat, LeCun, and Ballas]{IJEPA}
+Mahmoud Assran, Quentin Duval, Ishan Misra, Piotr Bojanowski, Pascal Vincent, Michael Rabbat, Yann LeCun, and Nicolas Ballas.
+\newblock Self-supervised learning from images with a joint-embedding predictive architecture.
+\newblock In \emph{CVPR}, 2023.
+
+\bibitem[Assran et~al.(2025)Assran, Bardes, Fan, Garrido, Howes, Mojtaba, Komeili, Muckley, Rizvi, Roberts, Sinha, Zholus, Arnaud, Gejji, Martin, Hogan, Dugas, Bojanowski, Khalidov, Labatut, Massa, Szafraniec, Krishnakumar, Li, Ma, Chandar, Meier, LeCun, Rabbat, and Ballas]{VJEPA2}
+Mido Assran, Adrien Bardes, David Fan, Quentin Garrido, Russell Howes, Mojtaba, Komeili, Matthew Muckley, Ammar Rizvi, Claire Roberts, Koustuv Sinha, Artem Zholus, Sergio Arnaud, Abha Gejji, Ada Martin, Francois~Robert Hogan, Daniel Dugas, Piotr Bojanowski, Vasil Khalidov, Patrick Labatut, Francisco Massa, Marc Szafraniec, Kapil Krishnakumar, Yong Li, Xiaodong Ma, Sarath Chandar, Franziska Meier, Yann LeCun, Michael Rabbat, and Nicolas Ballas.
+\newblock V-jepa 2: Self-supervised video models enable understanding, prediction and planning, 2025.
+
+\bibitem[Balestriero \& LeCun(2022)Balestriero and LeCun]{SLLspectralembeddings2022}
+Randall Balestriero and Yann LeCun.
+\newblock Contrastive and non-contrastive self-supervised learning recover global and local spectral embedding methods.
+\newblock In \emph{NeurIPS}, NIPS '22, Red Hook, NY, USA, 2022. Curran Associates Inc.
+\newblock ISBN 9781713871088.
+
+\bibitem[Balestriero \& Lecun(2024)Balestriero and Lecun]{ReconstructionUninformativebalestriero24b}
+Randall Balestriero and Yann Lecun.
+\newblock How learning by reconstruction produces uninformative features for perception.
+\newblock In Ruslan Salakhutdinov, Zico Kolter, Katherine Heller, Adrian Weller, Nuria Oliver, Jonathan Scarlett, and Felix Berkenkamp (eds.), \emph{ICML}, volume 235 of \emph{Proceedings of Machine Learning Research}, pp.\  2566--2585. PMLR, 21--27 Jul 2024.
+\newblock URL \url{https://proceedings.mlr.press/v235/balestriero24b.html}.
+
+\bibitem[Balestriero \& LeCun(2025)Balestriero and LeCun]{balestriero2025lejepaprovablescalableselfsupervised}
+Randall Balestriero and Yann LeCun.
+\newblock Lejepa: Provable and scalable self-supervised learning without the heuristics, 2025.
+\newblock URL \url{https://arxiv.org/abs/2511.08544}.
+
+\bibitem[Balestriero et~al.(2025)Balestriero, Assel, BuGhanem, and Maes]{balestriero2025stablepretrainingv1}
+Randall Balestriero, Hugues~Van Assel, Sami BuGhanem, and Lucas Maes.
+\newblock stable-pretraining-v1: Foundation model research made simple, 2025.
+\newblock URL \url{https://arxiv.org/abs/2511.19484}.
+
+\bibitem[Bar et~al.(2025)Bar, Zhou, Tran, Darrell, and LeCun]{NWM_Bar_2025_CVPR}
+Amir Bar, Gaoyue Zhou, Danny Tran, Trevor Darrell, and Yann LeCun.
+\newblock Navigation world models.
+\newblock In \emph{CVPR}, pp.\  15791--15801, June 2025.
+
+\bibitem[Bardes et~al.(2022)Bardes, Ponce, and LeCun]{VICReg}
+Adrien Bardes, Jean Ponce, and Yann LeCun.
+\newblock Vicreg: Variance-invariance-covariance regularization for self-supervised learning.
+\newblock In \emph{ICLR}, 2022.
+
+\bibitem[Bardes et~al.(2024)Bardes, Garrido, Ponce, Chen, Rabbat, LeCun, Assran, and Ballas]{VJEPA}
+Adrien Bardes, Quentin Garrido, Jean Ponce, Xinlei Chen, Michael Rabbat, Yann LeCun, Mido Assran, and Nicolas Ballas.
+\newblock Revisiting feature prediction for learning visual representations from video.
+\newblock \emph{Transactions on Machine Learning Research}, 2024.
+\newblock ISSN 2835-8856.
+
+\bibitem[Blattmann et~al.(2023)Blattmann, Dockhorn, Kulal, Mendelevitch, Kilian, Lorenz, Levi, English, Voleti, Letts, Jampani, and Rombach]{blattmann2023stablevideodiffusionscaling}
+Andreas Blattmann, Tim Dockhorn, Sumith Kulal, Daniel Mendelevitch, Maciej Kilian, Dominik Lorenz, Yam Levi, Zion English, Vikram Voleti, Adam Letts, Varun Jampani, and Robin Rombach.
+\newblock Stable video diffusion: Scaling latent video diffusion models to large datasets, 2023.
+\newblock URL \url{https://arxiv.org/abs/2311.15127}.
+
+\bibitem[Brooks et~al.(2024)Brooks, Peebles, Holmes, DePue, Guo, Jing, Schnurr, Taylor, Luhman, Luhman, et~al.]{brooks2024video}
+Tim Brooks, Bill Peebles, Connor Holmes, Will DePue, Yufei Guo, Li~Jing, David Schnurr, Joe Taylor, Troy Luhman, Eric Luhman, et~al.
+\newblock Video generation models as world simulators, 2024.
+\newblock URL \url{https://openai. com/research/video-generation-modelsas-world-simulators}.
+
+\bibitem[Bruce et~al.(2024)Bruce, Dennis, Edwards, Parker-Holder, Shi, Hughes, Lai, Mavalankar, Steigerwald, Apps, et~al.]{bruce2024genie}
+Jake Bruce, Michael~D Dennis, Ashley Edwards, Jack Parker-Holder, Yuge Shi, Edward Hughes, Matthew Lai, Aditi Mavalankar, Richie Steigerwald, Chris Apps, et~al.
+\newblock Genie: Generative interactive environments.
+\newblock In \emph{ICML}, 2024.
+
+\bibitem[Chen et~al.(2020)Chen, Kornblith, Norouzi, and Hinton]{SimCLR}
+Ting Chen, Simon Kornblith, Mohammad Norouzi, and Geoffrey Hinton.
+\newblock A simple framework for contrastive learning of visual representations.
+\newblock In \emph{ICML}, 2020.
+
+\bibitem[Chen \& He(2021)Chen and He]{SimSiam}
+Xinlei Chen and Kaiming He.
+\newblock Exploring simple siamese representation learning.
+\newblock In \emph{CVPR}, 2021.
+
+\bibitem[Chi et~al.(2023)Chi, Xu, Feng, Cousineau, Du, Burchfiel, Tedrake, and Song]{chi2023diffusion}
+Cheng Chi, Zhenjia Xu, Siyuan Feng, Eric Cousineau, Yilun Du, Benjamin Burchfiel, Russ Tedrake, and Shuran Song.
+\newblock Diffusion policy: Visuomotor policy learning via action diffusion.
+\newblock \emph{The International Journal of Robotics Research}, pp.\  02783649241273668, 2023.
+
+\bibitem[Craik(1967)]{craik1967nature}
+Kenneth James~Williams Craik.
+\newblock \emph{The nature of explanation}, volume 445.
+\newblock CUP Archive, 1967.
+
+\bibitem[Dosovitskiy et~al.(2021)Dosovitskiy, Beyer, Kolesnikov, Weissenborn, Zhai, Unterthiner, Dehghani, Minderer, Heigold, Gelly, Uszkoreit, and Houlsby]{VITs}
+Alexey Dosovitskiy, Lucas Beyer, Alexander Kolesnikov, Dirk Weissenborn, Xiaohua Zhai, Thomas Unterthiner, Mostafa Dehghani, Matthias Minderer, Georg Heigold, Sylvain Gelly, Jakob Uszkoreit, and Neil Houlsby.
+\newblock An image is worth 16x16 words: Transformers for image recognition at scale.
+\newblock In \emph{ICLR}, 2021.
+
+\bibitem[Downs \& Vogel(1993)Downs and Vogel]{TEP}
+J.~J. Downs and E.~F. Vogel.
+\newblock A plant-wide industrial process control problem.
+\newblock \emph{Computers \& Chemical Engineering}, 17\penalty0 (3):\penalty0 245--255, 1993.
+
+\bibitem[Espeholt et~al.(2018)Espeholt, Soyer, Munos, Simonyan, Mnih, Ward, Doron, Firoiu, Harley, Dunning, Legg, and Kavukcuoglu]{Impala}
+Lasse Espeholt, Hubert Soyer, Remi Munos, Karen Simonyan, Vlad Mnih, Tom Ward, Yotam Doron, Vlad Firoiu, Tim Harley, Iain Dunning, Shane Legg, and Koray Kavukcuoglu.
+\newblock {IMPALA}: Scalable distributed deep-{RL} with importance weighted actor-learner architectures.
+\newblock In Jennifer Dy and Andreas Krause (eds.), \emph{ICML}, volume~80 of \emph{Proceedings of Machine Learning Research}, pp.\  1407--1416. PMLR, 10--15 Jul 2018.
+\newblock URL \url{https://proceedings.mlr.press/v80/espeholt18a.html}.
+
+\bibitem[Garrido et~al.(2024)Garrido, Assran, Ballas, Bardes, Najman, and LeCun]{IWM}
+Quentin Garrido, Mahmoud Assran, Nicolas Ballas, Adrien Bardes, Laurent Najman, and Yann LeCun.
+\newblock Learning and leveraging world models in visual representation learning, 2024.
+
+\bibitem[Garrido et~al.(2025)Garrido, Ballas, Assran, Bardes, Najman, Rabbat, Dupoux, and LeCun]{garrido2025intuitivephysicsunderstandingemerges}
+Quentin Garrido, Nicolas Ballas, Mahmoud Assran, Adrien Bardes, Laurent Najman, Michael Rabbat, Emmanuel Dupoux, and Yann LeCun.
+\newblock Intuitive physics understanding emerges from self-supervised pretraining on natural videos, 2025.
+\newblock URL \url{https://arxiv.org/abs/2502.11831}.
+
+\bibitem[Godahewa et~al.(2021)Godahewa, Bergmeir, Webb, Hyndman, and Montero-Manso]{MonashTSF}
+Rakshitha Godahewa, Christoph Bergmeir, Geoffrey~I. Webb, Rob~J. Hyndman, and Pablo Montero-Manso.
+\newblock Monash time series forecasting archive.
+\newblock In \emph{NeurIPS Track on Datasets and Benchmarks}, 2021.
+
+\bibitem[Goh et~al.(2016)Goh, Adepu, Junejo, and Mathur]{SWaT}
+Jonathan Goh, Sridhar Adepu, Khurum~Nazir Junejo, and Aditya Mathur.
+\newblock A dataset to support research in the design of secure water treatment systems.
+\newblock In \emph{International Conference on Critical Information Infrastructures Security (CRITIS)}, pp.\ 88--99, 2016.
+
+\bibitem[Grill et~al.(2020)Grill, Strub, Altché, Tallec, Richemond, Buchatskaya, Doersch, Pires, Guo, Azar, Piot, Kavukcuoglu, Munos, and Valko]{BYOL}
+Jean-Bastien Grill, Florian Strub, Florent Altché, Corentin Tallec, Pierre~H. Richemond, Elena Buchatskaya, Carl Doersch, Bernardo~Avila Pires, Zhaohan~Daniel Guo, Mohammad~Gheshlaghi Azar, Bilal Piot, Koray Kavukcuoglu, Rémi Munos, and Michal Valko.
+\newblock Bootstrap your own latent: A new approach to self-supervised learning.
+\newblock In \emph{NeurIPS}, 2020.
+
+\bibitem[Hafner et~al.(2019)Hafner, Lillicrap, Fischer, Villegas, Ha, Lee, and Davidson]{PlaNet}
+Danijar Hafner, Timothy Lillicrap, Ian Fischer, Ruben Villegas, David Ha, Honglak Lee, and James Davidson.
+\newblock Learning latent dynamics for planning from pixels.
+\newblock In \emph{ICML}, volume~97, pp.\  2555--2565. PMLR, 2019.
+
+\bibitem[Hafner et~al.(2022)Hafner, Lee, Fischer, and Abbeel]{Director}
+Danijar Hafner, Kuang-Huei Lee, Ian Fischer, and Pieter Abbeel.
+\newblock Deep hierarchical planning from pixels.
+\newblock In Alice~H. Oh, Alekh Agarwal, Danielle Belgrave, and Kyunghyun Cho (eds.), \emph{NeurIPS}, 2022.
+
+\bibitem[Hafner et~al.(2024)Hafner, Pasukonis, Ba, and Lillicrap]{DreamerV3}
+Danijar Hafner, Jurgis Pasukonis, Jimmy Ba, and Timothy Lillicrap.
+\newblock Mastering diverse domains through world models, 2024.
+
+\bibitem[Hansen et~al.(2024)Hansen, Su, and Wang]{TDMPC2}
+Nicklas Hansen, Hao Su, and Xiaolong Wang.
+\newblock Td-mpc2: Scalable, robust world models for continuous control.
+\newblock In \emph{ICLR}, 2024.
+
+\bibitem[Hansen et~al.(2022)Hansen, Su, and Wang]{TD-MPC}
+Nicklas~A Hansen, Hao Su, and Xiaolong Wang.
+\newblock Temporal difference learning for model predictive control.
+\newblock In \emph{ICML}, volume 162 of \emph{Proceedings of Machine Learning Research}, pp.\  8387--8406. PMLR, 17--23 Jul 2022.
+
+\bibitem[He et~al.(2016)He, Zhang, Ren, and Sun]{ResNet}
+Kaiming He, Xiangyu Zhang, Shaoqing Ren, and Jian Sun.
+\newblock Deep residual learning for image recognition.
+\newblock In \emph{CVPR}, 2016.
+
+\bibitem[He et~al.(2020)He, Fan, Wu, Xie, and Girshick]{MoCo}
+Kaiming He, Haoqi Fan, Yuxin Wu, Saining Xie, and Ross Girshick.
+\newblock Momentum contrast for unsupervised visual representation learning.
+\newblock In \emph{CVPR}, 2020.
+
+\bibitem[He et~al.(2021)He, Chen, Xie, Li, Dollár, and Girshick]{MAE}
+Kaiming He, Xinlei Chen, Saining Xie, Yanghao Li, Piotr Dollár, and Ross Girshick.
+\newblock Masked autoencoders are scalable vision learners.
+\newblock In \emph{CVPR}, 2021.
+
+\bibitem[Hinton(2002)]{ContrastiveDivergence2002}
+Geoffrey~E. Hinton.
+\newblock Training products of experts by minimizing contrastive divergence.
+\newblock volume~14, pp.\  1771–1800, Cambridge, MA, USA, August 2002. MIT Press.
+\newblock \doi{10.1162/089976602760128018}.
+\newblock URL \url{https://doi.org/10.1162/089976602760128018}.
+
+\bibitem[Hopfield(1982)]{Hopfield1982}
+J~J Hopfield.
+\newblock Neural networks and physical systems with emergent collective computational abilities.
+\newblock \emph{Proceedings of the National Academy of Sciences}, 79\penalty0 (8):\penalty0 2554--2558, 1982.
+\newblock \doi{10.1073/pnas.79.8.2554}.
+\newblock URL \url{https://www.pnas.org/doi/abs/10.1073/pnas.79.8.2554}.
+
+\bibitem[Jaeger(2002)]{TBPTT2002tuto}
+Herbert Jaeger.
+\newblock Tutorial on training recurrent neural networks, covering bppt, rtrl, ekf and the echo state network approach.
+\newblock \emph{GMD-Forschungszentrum Informationstechnik, 2002.}, 5, 01 2002.
+
+\bibitem[Janner et~al.(2022)Janner, Du, Tenenbaum, and Levine]{Diffuser}
+Michael Janner, Yilun Du, Joshua Tenenbaum, and Sergey Levine.
+\newblock Planning with diffusion for flexible behavior synthesis.
+\newblock In \emph{ICML}, 2022.
+
+\bibitem[Jiang et~al.(2024)Jiang, Zhao, and Lu]{LaBraM}
+Wei-Bang Jiang, Li-Ming Zhao, and Bao-Liang Lu.
+\newblock Large brain model for learning generic representations with tractable {EEG} data.
+\newblock In \emph{International Conference on Learning Representations (ICLR)}, 2024.
+\newblock URL \url{https://arxiv.org/abs/2405.18765}.
+
+\bibitem[Lai et~al.(2018)Lai, Chang, Yang, and Liu]{LSTNet}
+Guokun Lai, Wei-Cheng Chang, Yiming Yang, and Hanxiao Liu.
+\newblock Modeling long- and short-term temporal patterns with deep neural networks.
+\newblock In \emph{ACM SIGIR}, pp.\ 95--104, 2018.
+
+\bibitem[LeCun(2022)]{PathAMI}
+Yann LeCun.
+\newblock A path towards autonomous machine intelligence.
+\newblock \emph{Open Review}, Jun 2022.
+
+\bibitem[LeCun et~al.(2006)LeCun, Chopra, Hadsell, Ranzato, and Huang]{LeCunEBMTutorial2006}
+Yann LeCun, Sumit Chopra, Raia Hadsell, M~Ranzato, and F~Huang.
+\newblock A tutorial on energy-based learning.
+\newblock 2006.
+
+\bibitem[Levy et~al.(2019)Levy, Platt, and Saenko]{HAC}
+Andrew Levy, Robert Platt, and Kate Saenko.
+\newblock Hierarchical reinforcement learning with hindsight.
+\newblock In \emph{ICLR}, 2019.
+
+\bibitem[Maes et~al.(2026)Maes, Le~Lidec, Facury, Massaudi, Chaurasia, Capuano, Gao, Gillin, Haramati, Scieur, LeCun, and Balestriero]{stableworldmodel}
+Lucas Maes, Quentin Le~Lidec, Luiz Facury, Nassim Massaudi, Ayush Chaurasia, Francesco Capuano, Richard Gao, Taj Gillin, Dan Haramati, Damien Scieur, Yann LeCun, and Randall Balestriero.
+\newblock stable-worldmodel: A platform for reproducible world modeling research and evaluation.
+\newblock 2026.
+\newblock URL \url{https://arxiv.org/abs/2605.21800}.
+
+\bibitem[Nachum et~al.(2018)Nachum, Gu, Lee, and Levine]{HIRO}
+Ofir Nachum, Shixiang~(Shane) Gu, Honglak Lee, and Sergey Levine.
+\newblock Data-efficient hierarchical reinforcement learning.
+\newblock In S.~Bengio, H.~Wallach, H.~Larochelle, K.~Grauman, N.~Cesa-Bianchi, and R.~Garnett (eds.), \emph{NeurIPS}, volume~31. Curran Associates, Inc., 2018.
+
+\bibitem[Ntakaris et~al.(2018)Ntakaris, Magris, Kanniainen, Gabbouj, and Iosifidis]{FI2010}
+Adamantios Ntakaris, Martin Magris, Juho Kanniainen, Moncef Gabbouj, and Alexandros Iosifidis.
+\newblock Benchmark dataset for mid-price forecasting of limit order book data with machine learning methods.
+\newblock \emph{Journal of Forecasting}, 37\penalty0 (8):\penalty0 852--866, 2018.
+
+\bibitem[Obeid \& Picone(2016)Obeid and Picone]{TUEG}
+Iyad Obeid and Joseph Picone.
+\newblock The {Temple University Hospital EEG} data corpus.
+\newblock \emph{Frontiers in Neuroscience}, 10:\penalty0 196, 2016.
+
+\bibitem[Ohana et~al.(2024)Ohana, McCabe, Meyer, Morel, Agocs, et~al.]{the_well}
+Ruben Ohana, Michael McCabe, Lucas Meyer, Rudy Morel, Fruzsina~J. Agocs, et~al.
+\newblock The well: a large-scale collection of diverse physics simulations for machine learning.
+\newblock In \emph{Advances in Neural Information Processing Systems (NeurIPS)}, volume~37, 2024.
+\newblock URL \url{https://arxiv.org/abs/2412.00568}.
+
+\bibitem[Oquab et~al.(2024)Oquab, Darcet, Moutakanni, Vo, Szafraniec, Khalidov, Fernandez, HAZIZA, Massa, El-Nouby, Assran, Ballas, Galuba, Howes, Huang, Li, Misra, Rabbat, Sharma, Synnaeve, Xu, Jegou, Mairal, Labatut, Joulin, and Bojanowski]{DINOV2}
+Maxime Oquab, Timoth{\'e}e Darcet, Th{\'e}o Moutakanni, Huy~V. Vo, Marc Szafraniec, Vasil Khalidov, Pierre Fernandez, Daniel HAZIZA, Francisco Massa, Alaaeldin El-Nouby, Mido Assran, Nicolas Ballas, Wojciech Galuba, Russell Howes, Po-Yao Huang, Shang-Wen Li, Ishan Misra, Michael Rabbat, Vasu Sharma, Gabriel Synnaeve, Hu~Xu, Herve Jegou, Julien Mairal, Patrick Labatut, Armand Joulin, and Piotr Bojanowski.
+\newblock {DINO}v2: Learning robust visual features without supervision.
+\newblock \emph{Transactions on Machine Learning Research}, 2024.
+\newblock ISSN 2835-8856.
+
+\bibitem[Parker-Holder et~al.(2024)Parker-Holder, Ball, Bruce, Dasagi, Holsheimer, Kaplanis, Moufarek, Scully, Shar, Shi, Spencer, Yung, Dennis, Kenjeyev, Long, Mnih, Chan, Gazeau, Li, Pardo, Wang, Zhang, Besse, Harley, Mitenkova, Wang, Clune, Hassabis, Hadsell, Bolton, Singh, and Rockt{\"a}schel]{genie2}
+Jack Parker-Holder, Philip Ball, Jake Bruce, Vibhavari Dasagi, Kristian Holsheimer, Christos Kaplanis, Alexandre Moufarek, Guy Scully, Jeremy Shar, Jimmy Shi, Stephen Spencer, Jessica Yung, Michael Dennis, Sultan Kenjeyev, Shangbang Long, Vlad Mnih, Harris Chan, Maxime Gazeau, Bonnie Li, Fabio Pardo, Luyu Wang, Lei Zhang, Frederic Besse, Tim Harley, Anna Mitenkova, Jane Wang, Jeff Clune, Demis Hassabis, Raia Hadsell, Adrian Bolton, Satinder Singh, and Tim Rockt{\"a}schel.
+\newblock Genie 2: A large-scale foundation world model.
+\newblock 2024.
+\newblock URL \url{https://deepmind.google/discover/blog/genie-2-a-large-scale-foundation-world-model/}.
+
+\bibitem[Pathak et~al.(2017)Pathak, Agrawal, Efros, and Darrell]{curiositydrivenexplorationselfsupervisedprediction}
+Deepak Pathak, Pulkit Agrawal, Alexei~A. Efros, and Trevor Darrell.
+\newblock Curiosity-driven exploration by self-supervised prediction.
+\newblock In \emph{ICML}, ICML'17, pp.\  2778–2787. JMLR.org, 2017.
+
+\bibitem[Rao \& Ballard(1999)Rao and Ballard]{Rao99}
+R.~P. Rao and D.~H. Ballard.
+\newblock Predictive coding in the visual cortex: a functional interpretation of some extra-classical receptive-field effects.
+\newblock \emph{Nature neuroscience}, 2\penalty0 (1):\penalty0 79--87, January 1999.
+\newblock ISSN 1097-6256.
+\newblock \doi{10.1038/4580}.
+\newblock URL \url{http://dx.doi.org/10.1038/4580}.
+
+\bibitem[Rieth et~al.(2017)Rieth, Amsel, Tran, and Cook]{riethTEP}
+Cory~A. Rieth, Ben~D. Amsel, Randy Tran, and Maia~B. Cook.
+\newblock Additional {T}ennessee {E}astman process simulation data for anomaly detection evaluation.
+\newblock Harvard Dataverse, 2017.
+\newblock \doi{10.7910/DVN/6C3JR1}.
+
+\bibitem[Saxena et~al.(2008)Saxena, Goebel, Simon, and Eklund]{CMAPSS}
+Abhinav Saxena, Kai Goebel, Don Simon, and Neil Eklund.
+\newblock Damage propagation modeling for aircraft engine run-to-failure simulation.
+\newblock In \emph{International Conference on Prognostics and Health Management (PHM)}, pp.\ 1--9, 2008.
+
+\bibitem[Schmidhuber(2015)]{Schmidhuber2015}
+Juergen Schmidhuber.
+\newblock On learning to think: Algorithmic information theory for novel combinations of reinforcement learning controllers and recurrent neural world models, 2015.
+\newblock URL \url{https://arxiv.org/abs/1511.09249}.
+
+\bibitem[Schmidhuber(1990)]{Schmidhuber1990}
+Jurgen Schmidhuber.
+\newblock Making the world differentiable: on using self supervised fully recurrent neural networks for dynamic reinforcement learning and planning in non-stationary environments.
+\newblock \emph{Forschungsberichte, TU Munich}, FKI 126 90:\penalty0 1--26, 1990.
+\newblock URL \url{https://api.semanticscholar.org/CorpusID:28490120}.
+
+\bibitem[Shwartz-Ziv et~al.(2023)Shwartz-Ziv, Balestriero, Kawaguchi, Rudner, and LeCun]{InformationTheoPerspectiveVICREG2023}
+Ravid Shwartz-Ziv, Randall Balestriero, Kenji Kawaguchi, Tim G.~J. Rudner, and Yann LeCun.
+\newblock An information theory perspective on variance-invariance-covariance regularization.
+\newblock In A.~Oh, T.~Naumann, A.~Globerson, K.~Saenko, M.~Hardt, and S.~Levine (eds.), \emph{NeurIPS}, volume~36, pp.\  33965--33998. Curran Associates, Inc., 2023.
+\newblock URL \url{https://proceedings.neurips.cc/paper_files/paper/2023/file/6b1d4c03391b0aa6ddde0b807a78c950-Paper-Conference.pdf}.
+
+\bibitem[Sobal et~al.(2022)Sobal, V, Jalagam, Carion, Cho, and LeCun]{sobal2022jepaslowfeatures}
+Vlad Sobal, Jyothir~S V, Siddhartha Jalagam, Nicolas Carion, Kyunghyun Cho, and Yann LeCun.
+\newblock Joint embedding predictive architectures focus on slow features, 2022.
+\newblock URL \url{https://arxiv.org/abs/2211.10831}.
+
+\bibitem[Sobal et~al.(2025)Sobal, Zhang, Cho, Balestriero, Rudner, and LeCun]{PLDM}
+Vlad Sobal, Wancong Zhang, Kyunghyun Cho, Randall Balestriero, Tim Rudner, and Yann LeCun.
+\newblock Learning from reward-free offline data: A case for planning with latent dynamics models, 02 2025.
+
+\bibitem[Srivastava et~al.(2015)Srivastava, Mansimov, and Salakhutdinov]{moving_mnist}
+Nitish Srivastava, Elman Mansimov, and Ruslan Salakhutdinov.
+\newblock Unsupervised learning of video representations using lstms.
+\newblock In \emph{ICML}, ICML'15, pp.\  843–852. JMLR.org, 2015.
+
+\bibitem[Sutton(1991)]{Dyna1991}
+Richard~S. Sutton.
+\newblock Dyna, an integrated architecture for learning, planning, and reacting.
+\newblock \emph{SIGART Bull.}, 2\penalty0 (4):\penalty0 160–163, July 1991.
+\newblock ISSN 0163-5719.
+\newblock \doi{10.1145/122344.122377}.
+\newblock URL \url{https://doi.org/10.1145/122344.122377}.
+
+\bibitem[Terver et~al.(2026a)Terver, Balestriero, Dervishi, Fan, Garrido, Nagarajan, Sinha, Zhang, Rabbat, LeCun, and Bar]{EBJEPA}
+Basile Terver, Randall Balestriero, Megi Dervishi, David Fan, Quentin Garrido, Tushar Nagarajan, Koustuv Sinha, Wancong Zhang, Mike Rabbat, Yann LeCun, and Amir Bar.
+\newblock A lightweight library for energy-based joint-embedding predictive architectures.
+\newblock In \emph{ICLR 2026 Workshop on World Models}, 2026a.
+\newblock URL \url{https://arxiv.org/abs/2602.03604}.
+
+\bibitem[Terver et~al.(2026b)Terver, Yang, Ponce, Bardes, and LeCun]{terver2026JEPAWMs}
+Basile Terver, Tsung-Yen Yang, Jean Ponce, Adrien Bardes, and Yann LeCun.
+\newblock What drives success in physical planning with joint-embedding predictive world models?, 2026.
+\newblock URL \url{https://arxiv.org/abs/2512.24497}.
+
+\bibitem[Tong et~al.(2022)Tong, Song, Wang, and Wang]{VideoMAE}
+Zhan Tong, Yibing Song, Jue Wang, and Limin Wang.
+\newblock Videomae: Masked autoencoders are data-efficient learners for self-supervised video pre-training.
+\newblock In S.~Koyejo, S.~Mohamed, A.~Agarwal, D.~Belgrave, K.~Cho, and A.~Oh (eds.), \emph{NeurIPS}, volume~35, pp.\  10078--10093. Curran Associates, Inc., 2022.
+
+\bibitem[Wang et~al.(2023)Wang, Huang, Zhao, Tong, He, Wang, Wang, and Qiao]{VideoMAEv2}
+Limin Wang, Bingkun Huang, Zhiyu Zhao, Zhan Tong, Yinan He, Yi~Wang, Yali Wang, and Yu~Qiao.
+\newblock Videomae v2: Scaling video masked autoencoders with dual masking.
+\newblock In \emph{CVPR}, 2023.
+
+\bibitem[Williams et~al.(2015)Williams, Aldrich, and Theodorou]{MPPI}
+Grady Williams, Andrew Aldrich, and Evangelos Theodorou.
+\newblock Model predictive path integral control using covariance variable importance sampling, 2015.
+
+\bibitem[Wu et~al.(2021)Wu, Xu, Wang, and Long]{Autoformer}
+Haixu Wu, Jiehui Xu, Jianmin Wang, and Mingsheng Long.
+\newblock Autoformer: Decomposition transformers with auto-correlation for long-term series forecasting.
+\newblock In \emph{NeurIPS}, 2021.
+
+\bibitem[Wu et~al.(2023)Wu, Hu, Liu, Zhou, Wang, and Long]{TimesNet}
+Haixu Wu, Tengge Hu, Yong Liu, Hang Zhou, Jianmin Wang, and Mingsheng Long.
+\newblock {TimesNet}: Temporal 2{D}-variation modeling for general time series analysis.
+\newblock In \emph{ICLR}, 2023.
+
+\bibitem[Wu \& Keogh(2023)Wu and Keogh]{UCRanomaly}
+Renjie Wu and Eamonn~J. Keogh.
+\newblock Current time series anomaly detection benchmarks are flawed and are creating the illusion of progress.
+\newblock \emph{IEEE Transactions on Knowledge and Data Engineering}, 35\penalty0 (3):\penalty0 2421--2429, 2023.
+
+\bibitem[Zbontar et~al.(2021)Zbontar, Jing, Misra, LeCun, and Deny]{BarlowTwins}
+Jure Zbontar, Li~Jing, Ishan Misra, Yann LeCun, and St{\'e}phane Deny.
+\newblock Barlow twins: Self-supervised learning via redundancy reduction.
+\newblock In \emph{ICML}, 2021.
+
+\bibitem[Zhou et~al.(2024{\natexlab{a}})Zhou, Pan, LeCun, and Pinto]{DINO-WM}
+Gaoyue Zhou, Hengkai Pan, Yann LeCun, and Lerrel Pinto.
+\newblock Dino-wm: World models on pre-trained visual features enable zero-shot planning, 2024{\natexlab{a}}.
+\newblock URL \url{https://arxiv.org/abs/2411.04983}.
+
+\bibitem[Zhou et~al.(2024{\natexlab{b}})Zhou, Swaminathan, Raju, Guntupalli, Lehrach, Ortiz, Dedieu, Lázaro-Gredilla, and Murphy]{DMPC}
+Guangyao Zhou, Sivaramakrishnan Swaminathan, Rajkumar~Vasudeva Raju, J.~Swaroop Guntupalli, Wolfgang Lehrach, Joseph Ortiz, Antoine Dedieu, Miguel Lázaro-Gredilla, and Kevin Murphy.
+\newblock Diffusion model predictive control.
+\newblock \emph{arXiv preprint arXiv:2410.05364}, 2024{\natexlab{b}}.
+
+\bibitem[Zhou et~al.(2021)Zhou, Zhang, Peng, Zhang, Li, Xiong, and Zhang]{Informer}
+Haoyi Zhou, Shanghang Zhang, Jieqi Peng, Shuai Zhang, Jianxin Li, Hui Xiong, and Wancai Zhang.
+\newblock Informer: Beyond efficient transformer for long sequence time-series forecasting.
+\newblock In \emph{AAAI}, 2021.
+
+\end{thebibliography}
