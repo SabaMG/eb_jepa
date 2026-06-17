@@ -10,7 +10,7 @@ are marked `# TODO` below — that is the whole point of the track:
   2. the SSL objective (two-view VICReg  *or*  predictive JEPA)
 The downstream probe + metric is the third `# TODO`, in eval.py.
 
-Run:  python -m examples.eeg.main --fname examples/eeg/configs/train.yaml
+Run:  python -m examples.eeg.main --fname examples/eeg/cfgs/train.yaml
 """
 import os
 import sys
@@ -61,7 +61,7 @@ def build_ssl(encoder, cfg):
 # --------------------------------------------------------------------------- #
 # TRAINING LOOP  — provided
 # --------------------------------------------------------------------------- #
-def run(fname="examples/eeg/configs/train.yaml", cfg=None, folder=None, **overrides):
+def run(fname="examples/eeg/cfgs/train.yaml", cfg=None, folder=None, **overrides):
     if cfg is None:
         cfg = OmegaConf.load(fname)
         if overrides:
@@ -95,5 +95,5 @@ def run(fname="examples/eeg/configs/train.yaml", cfg=None, folder=None, **overri
 
 if __name__ == "__main__":
     fname = sys.argv[sys.argv.index("--fname") + 1] if "--fname" in sys.argv \
-        else "examples/eeg/configs/train.yaml"
+        else "examples/eeg/cfgs/train.yaml"
     run(fname=fname)

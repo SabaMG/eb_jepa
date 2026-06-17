@@ -54,6 +54,6 @@ duplicate it.
 
 ## Run
 ```bash
-python -m examples.gray_scott.main --fname examples/gray_scott/configs/train.yaml
+python -m examples.gray_scott.main --fname examples/gray_scott/cfgs/train.yaml
 python -m examples.gray_scott.eval --ckpt <.../latest.pth.tar> --H 10
 ```

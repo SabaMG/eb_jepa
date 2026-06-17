@@ -9,7 +9,7 @@ are marked `# TODO` below — that is the whole point of the track:
   2. the SSL objective (predictive JEPA  *or*  two-view VICReg)
   3. (eval.py) the downstream forecast probe + metric
 
-Run:  python -m examples.ltsf.main --fname examples/ltsf/configs/train.yaml
+Run:  python -m examples.ltsf.main --fname examples/ltsf/cfgs/train.yaml
 """
 import os
 import sys
@@ -58,7 +58,7 @@ def build_ssl(encoder, cfg):
 # --------------------------------------------------------------------------- #
 # TRAINING LOOP  — provided
 # --------------------------------------------------------------------------- #
-def run(fname="examples/ltsf/configs/train.yaml", cfg=None, folder=None, **overrides):
+def run(fname="examples/ltsf/cfgs/train.yaml", cfg=None, folder=None, **overrides):
     if cfg is None:
         cfg = OmegaConf.load(fname)
         if overrides:
@@ -92,5 +92,5 @@ def run(fname="examples/ltsf/configs/train.yaml", cfg=None, folder=None, **overr
 
 if __name__ == "__main__":
     fname = sys.argv[sys.argv.index("--fname") + 1] if "--fname" in sys.argv \
-        else "examples/ltsf/configs/train.yaml"
+        else "examples/ltsf/cfgs/train.yaml"
     run(fname=fname)

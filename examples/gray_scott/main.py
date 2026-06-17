@@ -14,7 +14,7 @@ marked ``# TODO`` below — that is the whole point of the track:
   1. the 2D encoder over a frame  ``[B, 2, H, W] -> [B, D, h, w]``
   2. the temporal-JEPA assembly (encoder + EMA target + predictor + VCLoss)
 
-Run:  python -m examples.gray_scott.main --fname examples/gray_scott/configs/train.yaml
+Run:  python -m examples.gray_scott.main --fname examples/gray_scott/cfgs/train.yaml
 """
 import os
 import sys
@@ -71,7 +71,7 @@ def build_jepa(encoder, cfg):
 # --------------------------------------------------------------------------- #
 # TRAINING LOOP  — provided
 # --------------------------------------------------------------------------- #
-def run(fname="examples/gray_scott/configs/train.yaml", cfg=None, folder=None, **overrides):
+def run(fname="examples/gray_scott/cfgs/train.yaml", cfg=None, folder=None, **overrides):
     if cfg is None:
         cfg = OmegaConf.load(fname)
         if overrides:
@@ -138,5 +138,5 @@ def run(fname="examples/gray_scott/configs/train.yaml", cfg=None, folder=None, *
 
 if __name__ == "__main__":
     fname = sys.argv[sys.argv.index("--fname") + 1] if "--fname" in sys.argv \
-        else "examples/gray_scott/configs/train.yaml"
+        else "examples/gray_scott/cfgs/train.yaml"
     run(fname=fname)

@@ -14,7 +14,7 @@ marked `# TODO` below — that is the whole point of the track:
   1. the PointNet encoder over [B, 3, N]
   2. the two-view VICReg objective
 
-Run:  python -m examples.pointcloud.main --fname examples/pointcloud/configs/train.yaml
+Run:  python -m examples.pointcloud.main --fname examples/pointcloud/cfgs/train.yaml
 """
 import os
 import sys
@@ -66,7 +66,7 @@ def build_ssl(encoder, cfg):
 # --------------------------------------------------------------------------- #
 # TRAINING LOOP  — provided
 # --------------------------------------------------------------------------- #
-def run(fname="examples/pointcloud/configs/train.yaml", cfg=None, folder=None, **overrides):
+def run(fname="examples/pointcloud/cfgs/train.yaml", cfg=None, folder=None, **overrides):
     if cfg is None:
         cfg = OmegaConf.load(fname)
         if overrides:
@@ -101,5 +101,5 @@ def run(fname="examples/pointcloud/configs/train.yaml", cfg=None, folder=None, *
 
 if __name__ == "__main__":
     fname = sys.argv[sys.argv.index("--fname") + 1] if "--fname" in sys.argv \
-        else "examples/pointcloud/configs/train.yaml"
+        else "examples/pointcloud/cfgs/train.yaml"
     run(fname=fname)

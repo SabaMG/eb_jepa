@@ -103,32 +103,32 @@ EXAMPLE_CONFIGS = {
     },
     # ---- ported PoC projects (self-contained: each has its own main.run) -------
     "fintime": {
-        "config": "examples/fintime/configs/train.yaml",
+        "config": "examples/fintime/cfgs/train.yaml",
         "module": "examples.fintime.main",
         "metric": "auroc",
     },
     "ltsf": {
-        "config": "examples/ltsf/configs/train.yaml",
+        "config": "examples/ltsf/cfgs/train.yaml",
         "module": "examples.ltsf.main",
         "metric": "mse",
     },
     "eeg": {
-        "config": "examples/eeg/configs/train.yaml",
+        "config": "examples/eeg/cfgs/train.yaml",
         "module": "examples.eeg.main",
         "metric": "auroc",
     },
     "audio": {
-        "config": "examples/audio/configs/train.yaml",
+        "config": "examples/audio/cfgs/train.yaml",
         "module": "examples.audio.main",
         "metric": "accuracy",
     },
     "pointcloud": {
-        "config": "examples/pointcloud/configs/train.yaml",
+        "config": "examples/pointcloud/cfgs/train.yaml",
         "module": "examples.pointcloud.main",
         "metric": "accuracy",
     },
     "gray_scott": {
-        "config": "examples/gray_scott/configs/train.yaml",
+        "config": "examples/gray_scott/cfgs/train.yaml",
         "module": "examples.gray_scott.main",
         "metric": "vrmse",
     },

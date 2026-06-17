@@ -42,7 +42,7 @@ Reuse the eb_jepa core (`eb_jepa.architectures.RNNPredictor`/`Projector`,
 
 ## Run
 ```bash
-python -m examples.ltsf.main --fname examples/ltsf/configs/train.yaml
+python -m examples.ltsf.main --fname examples/ltsf/cfgs/train.yaml
 python -m examples.ltsf.eval --ckpt <.../latest.pth.tar> --pred_len 96
 # full table: sweep --pred_len over {96, 192, 336, 720}
 ```

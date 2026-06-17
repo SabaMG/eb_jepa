@@ -35,7 +35,7 @@ extraction) is provided.
 
 ## Run
 ```bash
-python -m examples.eeg.main --fname examples/eeg/configs/train.yaml
+python -m examples.eeg.main --fname examples/eeg/cfgs/train.yaml
 python -m examples.eeg.eval --ckpt <.../latest.pth.tar>
 ```
 

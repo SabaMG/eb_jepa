@@ -41,8 +41,8 @@ provided. Reuse the eb_jepa core (`Projector`, `VICRegLoss`, `VCLoss`,
 
 ## Run
 ```bash
-python -m examples.audio.main --fname examples/audio/configs/train.yaml            # raw
-python -m examples.audio.main --fname examples/audio/configs/train.yaml data.mode=mel model.mode=mel
+python -m examples.audio.main --fname examples/audio/cfgs/train.yaml            # raw
+python -m examples.audio.main --fname examples/audio/cfgs/train.yaml data.mode=mel model.mode=mel
 python -m examples.audio.eval --ckpt <.../latest.pth.tar>
 ```
 

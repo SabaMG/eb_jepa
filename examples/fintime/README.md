@@ -33,6 +33,6 @@ Everything else (data loading, training loop, feature extraction) is provided.
 ## Run
 ```bash
 python -m examples.fintime.prepare           # once
-python -m examples.fintime.main --fname examples/fintime/configs/train.yaml
+python -m examples.fintime.main --fname examples/fintime/cfgs/train.yaml
 python -m examples.fintime.eval --ckpt <.../latest.pth.tar> --target direction
 ```

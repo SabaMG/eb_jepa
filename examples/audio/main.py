@@ -11,8 +11,8 @@ marked `# TODO` below — that is the whole point of the track:
   2. the SSL objective (two-view VICReg  *or*  predictive JEPA)
   (eval.py adds the third TODO: the downstream linear probe + metric.)
 
-Run:  python -m examples.audio.main --fname examples/audio/configs/train.yaml
-      python -m examples.audio.main --fname examples/audio/configs/train.yaml mode=mel
+Run:  python -m examples.audio.main --fname examples/audio/cfgs/train.yaml
+      python -m examples.audio.main --fname examples/audio/cfgs/train.yaml mode=mel
 """
 import os
 import sys
@@ -66,7 +66,7 @@ def build_ssl(encoder, cfg):
 # --------------------------------------------------------------------------- #
 # TRAINING LOOP  — provided
 # --------------------------------------------------------------------------- #
-def run(fname="examples/audio/configs/train.yaml", cfg=None, folder=None, **overrides):
+def run(fname="examples/audio/cfgs/train.yaml", cfg=None, folder=None, **overrides):
     if cfg is None:
         cfg = OmegaConf.load(fname)
         if overrides:
@@ -102,6 +102,6 @@ def run(fname="examples/audio/configs/train.yaml", cfg=None, folder=None, **over
 
 if __name__ == "__main__":
     fname = sys.argv[sys.argv.index("--fname") + 1] if "--fname" in sys.argv \
-        else "examples/audio/configs/train.yaml"
+        else "examples/audio/cfgs/train.yaml"
     overrides = dict(a.split("=", 1) for a in sys.argv[1:] if "=" in a)
     run(fname=fname, **overrides)

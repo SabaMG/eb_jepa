@@ -50,7 +50,7 @@ two views demand, the harder the global feature is to keep linearly separable.
 
 ## Run
 ```bash
-python -m examples.pointcloud.main --fname examples/pointcloud/configs/train.yaml
+python -m examples.pointcloud.main --fname examples/pointcloud/cfgs/train.yaml
 python -m examples.pointcloud.eval --ckpt <.../latest.pth.tar>
 # view-invariance study: rerun pretraining with data.rotate=none and data.rotate=z
 ```
