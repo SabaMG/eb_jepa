@@ -1,0 +1,32 @@
+# Pari principal SUCCÈS : snap (actions in-distribution) + planification en
+# espace de POSITION via le probe (objectif probe_pos, immunisé contre la
+# domination du masque de murs dans le latent) + sous-buts A* spacing=2.
+logging:
+  tqdm_silent: false
+task_specification:
+  goal_source: random_state
+  obs: rgb
+  waypoint_mode: true
+  waypoint_spacing: 2
+  waypoint_reach_cells: 0.5
+  waypoint_action_prior: true
+  stop_on_success: true
+planner:
+  planner_name: mppi
+  snap_actions_to_grid: true
+  num_act_stepped: 1
+  plan_length: 4
+  n_iters: 20
+  num_samples: 200
+  num_elites: 20
+  max_norms:
+    - 2.45
+  max_norm_dims:
+    - 0
+    - 1
+  var_scale: 1.5
+  decode_each_iteration: false
+  planning_objective:
+    objective_type: probe_pos
+    sum_all_diffs: true
+ctxt_window_time: 1

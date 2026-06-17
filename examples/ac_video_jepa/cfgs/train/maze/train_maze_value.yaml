@@ -1,0 +1,74 @@
+# TD-MPC style learned VALUE head on top of the PROVEN world model (exp_aux_pos,
+# ~45% world-model-only with probe_pos). The world model + probe are FROZEN
+# (freeze_world_model=true); only the goal-conditioned value head V(z, z_goal) is
+# trained, by TD(0) on the model's own rollouts. Replaces the crude
+# distance-in-latent-space planning cost with a learned cost-to-go. Fast (value
+# head is tiny, no JEPA backward) → <20 min. Eval is run separately afterwards.
+logging:
+  log_wandb: false       # no W&B on this run (offline cluster)
+  wandb_group:
+  wandb_sweep:
+  log_every: 10
+  exp_suffix: maze_value
+  save_every_n_epochs: 1
+  tqdm_silent: false
+meta:
+  model_folder:            # set on CLI (new save folder)
+  init_from:               # set on CLI (exp_aux_pos weights, fresh value head)
+  load_model: false
+  enable_plan_eval: false  # eval separately (faster training)
+  eval_every_itr: -1
+  light_eval_freq: 50
+  seed: 1
+data:
+  env_name: maze
+  batch_size: 384
+  sample_length: 17        # short window → distances 1..16 to the endpoint goal
+  min_path_length: 50      # same difficulty as exp_aux_pos
+  n_steps: 91
+  num_workers: 16
+  pin_mem: true
+  persistent_workers: true
+  pipeline:
+    mode: stream
+    backend: gpu
+    num_gen_workers: 32
+    chunk_size: 3840
+    dtype: bfloat16
+training:
+  use_amp: true
+  dtype: bfloat16
+model:
+  compile: false           # frozen WM + tiny value head: compile not worth it
+  dobs: 2
+  henc: 128
+  hpre: 128
+  dstc: 128
+  nsteps: 8
+  freeze_world_model: true # <-- only the value head trains
+  value_coeff: 1.0         # <-- TD-MPC learned value
+  value_gamma: 0.95
+  value_lr: 1.e-3
+  encoder_architecture: impala
+  train_rollout: last
+  encoder_skip_connections: True
+  predictor_skip_connections: True
+  regularizer:
+    cov_coeff: 8
+    std_coeff: 16
+    sim_coeff_t: 12
+    idm_coeff: 1
+    first_t_only: False
+    spatial_as_samples: false
+    use_proj: false
+    idm_after_proj: false
+    sim_t_after_proj: false
+optim:
+  epochs: 6                # value head converges fast; ~15-20 min
+  lr: 0.0002
+  grad_clip_enc: 2.0
+  grad_clip_pred: 2.0
+  weight_decay: 1.e-5
+eval:
+  plan_cfg_path: examples/ac_video_jepa/cfgs/planning/maze/planning_mppi_value_wp1.yaml
+  eval_cfg_path: examples/ac_video_jepa/cfgs/eval/maze/eval_maze_short.yaml

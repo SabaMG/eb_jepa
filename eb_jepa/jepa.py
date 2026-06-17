@@ -77,7 +77,7 @@ class JEPA(JEPAbase):
           ctxt_window_time=1, compute_loss=True)
         - Planning with ac_video_jepa: unroll(x, a, nsteps, unroll_mode="autoregressive",
           ctxt_window_time=k, compute_loss=False)
-        - Inference like infern(): unroll(x, a, nsteps, unroll_mode="parallel",
+        - Inference like infer(): unroll(x, a, nsteps, unroll_mode="parallel",
           compute_loss=False, return_all_steps=True)
 
         Predictor behavior:
@@ -107,7 +107,7 @@ class JEPA(JEPAbase):
             ctxt_window_time: Context window size for autoregressive mode.
                 For RNN predictors (is_rnn=True), this is effectively 1.
             compute_loss: Whether to compute losses (requires ground truth observations)
-            return_all_steps: If True, return list of predictions at each step (like infern).
+            return_all_steps: If True, return list of predictions at each step (like infer).
                 If False, return only the final predicted states.
 
         Returns:

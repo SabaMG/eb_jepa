@@ -1,0 +1,12 @@
+# Eval for Exp A (small 11x11 maze). Geometry comes from train_maze_small.yaml's
+# data section; here we only bound episode count and length so a failing run
+# can't burn hours. Optimal path in an 11x11 maze is short (~15-30 steps).
+meta:
+  num_eval_episodes: 10
+  plan_suffix: _maze_small
+env:
+  n_allowed_steps: 80
+  n_steps: 80
+  max_step_norm: 1.5   # cell units -> up to 1.5 * cell_size pixels
+data:
+  env_name: maze

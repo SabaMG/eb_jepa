@@ -1,0 +1,30 @@
+# Maze environment dataset configuration.
+# Merged with overrides from train_maze.yaml or eval_maze.yaml.
+
+# Maze geometry (height and width MUST be odd)
+maze_height: 21
+maze_width: 21
+cell_size: 3
+img_size: 63        # = maze_height * cell_size; recomputed if maze_height changes
+
+# Path constraints
+n_steps: 91         # full trajectory length before windowing (padded with stay if A* path is shorter)
+sample_length: 17   # training window length
+min_path_length: 18 # reject mazes whose A* path is shorter than this (must be >= sample_length + 1)
+max_gen_retries: 64 # how many times to retry maze generation per __getitem__
+
+# Visualisation
+agent_std: 1.2      # Gaussian dot std (pixels). Cell size is 3 px, so ~1 cell wide.
+
+# Dataset size
+size: 100000
+val_size: 10000
+batch_size: 64
+train: true
+normalize: true
+
+# DataLoader defaults
+num_workers: 0
+pin_mem: false
+persistent_workers: false
+device: cpu

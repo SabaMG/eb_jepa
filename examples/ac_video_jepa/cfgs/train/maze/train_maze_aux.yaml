@@ -1,0 +1,71 @@
+# Fine-tune court (≤45 min) depuis exp_long_h32 avec une LOSS AUXILIAIRE DE
+# POSITION (aux_pos_coeff) qui modèle l'encodeur pour que le latent soit
+# linéairement décodable en position → signal probe_pos net au planning → moins
+# de stalls. Fenêtre courte (sample_length=17, nsteps=8) pour rester rapide ;
+# min_path_length=50 conservé pour que les mazes d'eval restent de même difficulté.
+logging:
+  log_wandb: true
+  wandb_group:
+  wandb_sweep:
+  log_every: 10
+  exp_suffix: maze_aux
+  save_every_n_epochs: 1
+  tqdm_silent: false
+meta:
+  model_folder:            # défini en CLI (nouveau folder de sauvegarde)
+  init_from:               # défini en CLI (poids exp_long_h32, optimizer frais)
+  load_model: false
+  enable_plan_eval: false  # eval séparée après (training plus rapide)
+  eval_every_itr: -1
+  light_eval_freq: 50
+  seed: 1
+data:
+  env_name: maze
+  batch_size: 384
+  sample_length: 17        # fenêtre courte → ~5-6 min/epoch
+  min_path_length: 50      # garde les mazes (et l'eval) à la même difficulté
+  n_steps: 91
+  num_workers: 16
+  pin_mem: true
+  persistent_workers: true
+  pipeline:
+    mode: stream
+    backend: gpu
+    num_gen_workers: 32
+    chunk_size: 3840
+    dtype: bfloat16
+training:
+  use_amp: true
+  dtype: bfloat16
+model:
+  compile: true
+  compile_mode: reduce-overhead
+  dobs: 2
+  henc: 128
+  hpre: 128
+  dstc: 128
+  nsteps: 8                # horizon court (suffit au planning waypoint plan=4)
+  aux_pos_coeff: 0.5       # <-- gentle (2.0 dominait VICReg -> collapse)
+  encoder_architecture: impala
+  train_rollout: last
+  encoder_skip_connections: True
+  predictor_skip_connections: True
+  regularizer:
+    cov_coeff: 8
+    std_coeff: 16
+    sim_coeff_t: 12
+    idm_coeff: 1
+    first_t_only: False
+    spatial_as_samples: false
+    use_proj: false
+    idm_after_proj: false
+    sim_t_after_proj: false
+optim:
+  epochs: 7                # ~40 min (<=45)
+  lr: 0.0002               # LR fine-tune plus doux (anti-collapse)
+  grad_clip_enc: 2.0
+  grad_clip_pred: 2.0
+  weight_decay: 1.e-5
+eval:
+  plan_cfg_path: examples/ac_video_jepa/cfgs/planning/maze/planning_mppi_probe_prior_wp2_pl4.yaml
+  eval_cfg_path: examples/ac_video_jepa/cfgs/eval/maze/eval_maze_short.yaml

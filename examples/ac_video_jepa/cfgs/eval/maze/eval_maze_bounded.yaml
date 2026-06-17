@@ -1,0 +1,12 @@
+# Eval for Exp B (big model, full 21x21 maze). Same task as eval_maze.yaml but
+# fewer episodes so a failing run stays within a sane wall-time (~20 min/episode
+# when episodes run the full step cap).
+meta:
+  num_eval_episodes: 8
+  plan_suffix: _maze_big
+env:
+  n_allowed_steps: 200
+  n_steps: 200
+  max_step_norm: 1.5
+data:
+  env_name: maze

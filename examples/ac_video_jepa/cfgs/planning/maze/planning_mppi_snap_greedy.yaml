@@ -1,0 +1,30 @@
+# Fix exécution : snap des actions MPPI sur la grille cardinale × cell_size
+# (in-distribution pour le world-model). Greedy repr_dist, PAS de waypoints.
+# Diagnostic : le snap suffit-il à faire bouger l'agent vers le but ? (et le
+# greedy global est-il le seul blocage restant une fois l'exécution réparée ?)
+logging:
+  tqdm_silent: false
+task_specification:
+  goal_source: random_state
+  obs: rgb
+  stop_on_success: true
+planner:
+  planner_name: mppi
+  snap_actions_to_grid: true   # <-- le fix
+  num_act_stepped: 1
+  plan_length: 32
+  n_iters: 20
+  num_samples: 200
+  num_elites: 20
+  max_norms:
+    - 2.45
+  max_norm_dims:
+    - 0
+    - 1
+  var_scale: 1.5
+  decode_each_iteration: false
+  planning_objective:
+    objective_type: repr_dist
+    sum_all_diffs: true
+    alpha: 0.
+ctxt_window_time: 1

@@ -1,0 +1,10 @@
+# Confirmation finale : 30 épisodes, 200 pas (enlève la limite sur les longs mazes).
+meta:
+  num_eval_episodes: 30
+  plan_suffix: _final
+env:
+  n_allowed_steps: 200
+  n_steps: 200
+  max_step_norm: 1.5
+data:
+  env_name: maze

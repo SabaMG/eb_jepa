@@ -1,0 +1,9 @@
+meta:
+  num_eval_episodes: 20
+  plan_suffix: _maze_sum_diffs
+env:
+  n_allowed_steps: 200
+  n_steps: 200
+  max_step_norm: 1.5  # in cell units → planner output magnitude up to 1.5 * cell_size pixels
+data:
+  env_name: maze

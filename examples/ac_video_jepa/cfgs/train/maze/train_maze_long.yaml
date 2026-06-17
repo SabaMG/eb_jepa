@@ -1,0 +1,76 @@
+# Exp C — long-horizon training on the full 21x21 maze.
+#
+# Motivation: the planner rolls the world-model out plan_length=90 steps, but the
+# model was only trained to predict nsteps=8 -> long-horizon predictions are
+# unreliable -> greedy repr_dist planning gets stuck (0% success, agent makes
+# partial progress then stalls). Fix: train the model to predict far further.
+#   nsteps 8 -> 32   (autoregressive unroll depth; cheap RNN steps in latent space)
+#   sample_length 17 -> 49  (longer window to supervise the 32 unroll steps;
+#                            this is the real compute driver — more frames encoded)
+#   min_path_length 18 -> 50 (>= sample_length + 1; rejects shorter mazes)
+# Plus a 128-dim model (the 32-dim latent didn't encode position well; probe high)
+# and the full GPU-stream pipeline with 32 A* workers so training stays fast.
+logging:
+  log_wandb: true
+  wandb_group:
+  wandb_sweep:
+  log_every: 10
+  exp_suffix: maze_long
+  save_every_n_epochs: 1
+  tqdm_silent: false
+meta:
+  model_folder:
+  load_model: true
+  enable_plan_eval: true
+  eval_every_itr: -1
+  light_eval_freq: 50
+  seed: 1
+data:
+  env_name: maze
+  batch_size: 384
+  sample_length: 49        # was 17 — longer training window
+  min_path_length: 50      # >= sample_length + 1; rejects shorter A* paths
+  n_steps: 91              # full trajectory length (>= sample_length); unchanged
+  num_workers: 16
+  pin_mem: true
+  persistent_workers: true
+  pipeline:
+    mode: stream
+    backend: gpu           # vectorised GPU rendering + parallel A* sampling
+    num_gen_workers: 32    # CPU workers for the A* layout/path (fix 1df9eba)
+    chunk_size: 3840
+    dtype: bfloat16
+training:
+  use_amp: true
+  dtype: bfloat16
+model:
+  compile: true
+  compile_mode: reduce-overhead
+  dobs: 2
+  henc: 128
+  hpre: 128
+  dstc: 128
+  nsteps: 32               # was 8 — train long-horizon prediction
+  encoder_architecture: impala
+  train_rollout: last
+  encoder_skip_connections: True
+  predictor_skip_connections: True
+  regularizer:
+    cov_coeff: 8
+    std_coeff: 16
+    sim_coeff_t: 12
+    idm_coeff: 1
+    first_t_only: False
+    spatial_as_samples: false
+    use_proj: false
+    idm_after_proj: false
+    sim_t_after_proj: false
+optim:
+  epochs: 12
+  lr: 0.001
+  grad_clip_enc: 2.0
+  grad_clip_pred: 2.0
+  weight_decay: 1.e-5
+eval:
+  plan_cfg_path: examples/ac_video_jepa/cfgs/planning/two_rooms/planning_mppi.yaml
+  eval_cfg_path: examples/ac_video_jepa/cfgs/eval/maze/eval_maze_bounded.yaml

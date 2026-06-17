@@ -1,0 +1,34 @@
+# Learned-VALUE planning toward the GLOBAL goal, NO waypoints (TD-MPC style).
+# This is the clean test of the user's hypothesis: replace the crude latent/
+# position distance with a learned value V(z, z_goal) ≈ discounted return-to-goal.
+# Compare directly against:
+#   planning_mppi_snap_greedy.yaml  (repr_dist, same settings)
+#   planning_mppi_probe_greedy.yaml (probe_pos, same settings)
+# Long plan_length so the value's multi-step cost-to-go can shine where greedy
+# distance gets stuck at walls.
+logging:
+  tqdm_silent: false
+task_specification:
+  goal_source: random_state
+  obs: rgb
+  stop_on_success: true
+planner:
+  planner_name: mppi
+  snap_actions_to_grid: true
+  num_act_stepped: 1
+  plan_length: 16
+  n_iters: 20
+  num_samples: 200
+  num_elites: 20
+  max_norms:
+    - 2.45
+  max_norm_dims:
+    - 0
+    - 1
+  var_scale: 1.5
+  decode_each_iteration: false
+  planning_objective:
+    objective_type: learned_value
+    sum_all_diffs: true
+    gamma: 0.95
+ctxt_window_time: 1

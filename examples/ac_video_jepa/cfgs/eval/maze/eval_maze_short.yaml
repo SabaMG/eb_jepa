@@ -1,0 +1,13 @@
+# Eval courte pour les pistes de planning (waypoints / collision) sur exp_long_h32.
+# Le world-model est déjà entraîné : ces runs ne font que re-planifier → courtes.
+# n_allowed_steps réduit (chemin A* ~50-70 en 21x21, marge suffisante) et
+# stop_on_success (dans le plan_cfg) termine les épisodes réussis tôt.
+meta:
+  num_eval_episodes: 12
+  plan_suffix: _planning_probe
+env:
+  n_allowed_steps: 140
+  n_steps: 140
+  max_step_norm: 1.5
+data:
+  env_name: maze

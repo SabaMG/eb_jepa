@@ -23,9 +23,11 @@ def launch_plan_eval(
     global_step,
     suffix="",
     num_eval_episodes=10,
+    n_parallel=1,
     loader=None,
     prober=None,
     plan_cfg=None,
+    value_head=None,
 ):
     """Evaluate the planning capabilities of the trained JEPA model."""
     logger.info(f"Planning eval: epoch={epoch} step={global_step}")
@@ -45,8 +47,10 @@ def launch_plan_eval(
         env_creator=env_creator,
         eval_folder=eval_folder,
         num_episodes=num_eval_episodes,
+        n_parallel=n_parallel,
         loader=loader,
         prober=prober,
+        value_head=value_head,
     )
     logger.info(
         f"   success_rate={eval_results['success_rate']:.2f} | mean_dist={eval_results['mean_state_dist']:.4f}"

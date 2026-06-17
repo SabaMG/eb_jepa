@@ -1,0 +1,11 @@
+# Eval de tuning : un peu plus de pas (certains épisodes progressent mais lents)
+# et plus d'épisodes pour une estime de succès plus fiable.
+meta:
+  num_eval_episodes: 16
+  plan_suffix: _probe_tune
+env:
+  n_allowed_steps: 180
+  n_steps: 180
+  max_step_norm: 1.5
+data:
+  env_name: maze

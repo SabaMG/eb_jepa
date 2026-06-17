@@ -1,0 +1,28 @@
+# Diagnostic : snap + objectif probe_pos vers le BUT FINAL (pas de waypoints).
+# Le signal positionnel seul fait-il avancer l'agent vers la sortie ? (le greedy
+# peut encore coller aux murs, mais on verra s'il bouge correctement).
+logging:
+  tqdm_silent: false
+task_specification:
+  goal_source: random_state
+  obs: rgb
+  stop_on_success: true
+planner:
+  planner_name: mppi
+  snap_actions_to_grid: true
+  num_act_stepped: 1
+  plan_length: 16
+  n_iters: 20
+  num_samples: 200
+  num_elites: 20
+  max_norms:
+    - 2.45
+  max_norm_dims:
+    - 0
+    - 1
+  var_scale: 1.5
+  decode_each_iteration: false
+  planning_objective:
+    objective_type: probe_pos
+    sum_all_diffs: true
+ctxt_window_time: 1

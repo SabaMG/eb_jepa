@@ -96,6 +96,11 @@ EXAMPLE_CONFIGS = {
         "module": "examples.ac_video_jepa.main",
         "metric": "success_rate",
     },
+    "maze": {
+        "config": "examples/ac_video_jepa/cfgs/train/maze/train_maze_aux.yaml",
+        "module": "examples.ac_video_jepa.main",
+        "metric": "success_rate",
+    },
 }
 
 # =============================================================================
@@ -365,7 +370,7 @@ if __name__ == "__main__":
         "--example",
         type=str,
         required=True,
-        choices=["image_jepa", "video_jepa", "ac_video_jepa"],
+        choices=["image_jepa", "video_jepa", "ac_video_jepa", "maze"],
         help="Which example to run",
     )
     parser.add_argument(

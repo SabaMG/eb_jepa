@@ -1,0 +1,32 @@
+# Fix exécution (snap cardinale) + sous-buts A* spacing=2. Pari principal sur le
+# SUCCÈS : exécution locale réparée + cibles localement atteignables → l'agent
+# devrait suivre le chemin A* jusqu'à la sortie.
+logging:
+  tqdm_silent: false
+task_specification:
+  goal_source: random_state
+  obs: rgb
+  waypoint_mode: true
+  waypoint_spacing: 2
+  waypoint_reach_cells: 0.5
+  stop_on_success: true
+planner:
+  planner_name: mppi
+  snap_actions_to_grid: true   # <-- le fix
+  num_act_stepped: 1
+  plan_length: 8
+  n_iters: 20
+  num_samples: 200
+  num_elites: 20
+  max_norms:
+    - 2.45
+  max_norm_dims:
+    - 0
+    - 1
+  var_scale: 1.5
+  decode_each_iteration: false
+  planning_objective:
+    objective_type: repr_dist
+    sum_all_diffs: true
+    alpha: 0.
+ctxt_window_time: 1

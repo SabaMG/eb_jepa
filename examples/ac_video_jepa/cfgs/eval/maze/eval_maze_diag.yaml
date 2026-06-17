@@ -1,0 +1,11 @@
+# Eval ultra-courte pour le diagnostic : 1 épisode, peu de pas (on veut surtout
+# le print [DIAG] au step 0).
+meta:
+  num_eval_episodes: 1
+  plan_suffix: _diag
+env:
+  n_allowed_steps: 12
+  n_steps: 12
+  max_step_norm: 1.5
+data:
+  env_name: maze

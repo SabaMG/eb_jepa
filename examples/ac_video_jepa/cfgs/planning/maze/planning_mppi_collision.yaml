@@ -1,0 +1,31 @@
+# Piste #2 — objectif de planning non-greedy : repr_dist + pénalité de collision.
+# On garde le terme distance-au-but dans la latente, mais on ajoute une pénalité
+# pour les états prédits qui tombent sur un MUR (latent décodé via le probe → cellule
+# → masque de murs de l'épisode). MPPI est alors poussé vers des séquences d'actions
+# qui restent sur le chemin tout en visant le but. World-model inchangé (Exp C).
+logging:
+  tqdm_silent: false
+task_specification:
+  goal_source: random_state # random_state or dset
+  obs: rgb
+  stop_on_success: true      # termine l'épisode au but (mesure + temps)
+planner:
+  planner_name: mppi
+  num_act_stepped: 1
+  plan_length: 32            # horizon aligné sur l'entraînement (nsteps=32)
+  n_iters: 20
+  num_samples: 200
+  num_elites: 20
+  max_norms:
+    - 2.45
+  max_norm_dims:
+    - 0
+    - 1
+  var_scale: 1.5
+  decode_each_iteration: false
+  planning_objective:
+    objective_type: repr_dist_collision
+    sum_all_diffs: true
+    alpha: 0.
+    collision_coeff: 0.3     # poids de la pénalité mur (par pas de trajectoire prédit)
+ctxt_window_time: 1
