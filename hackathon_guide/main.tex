@@ -498,10 +498,10 @@ the config --- a CLI \code{--logging.log\_wandb=false} is parsed as the string
 \textbf{Pre-downloaded datasets} (under the shared project space; group-readable):
 \begin{lstlisting}[style=bash]
 DSETS=/lustre/work/pdl17890/udl806719/datasets
-$DSETS/the_well/gray_scott_reaction_diffusion  # The Well / gray_scott (Track 4)
-$DSETS/speech_commands_v2                       # Speech Commands v2  (Track 2)
-$DSETS/modelnet40/modelnet40_ply_hdf5_2048      # ModelNet40          (Track 6)
-$DSETS/Neuro                                    # TUAB / TUEV EEG     (Track 1)
+$DSETS/the_well/gray_scott_reaction_diffusion  # The Well / gray_scott (Track 5)
+$DSETS/speech_commands_v2                       # Speech Commands v2  (Track 3)
+$DSETS/modelnet40/modelnet40_ply_hdf5_2048      # ModelNet40          (Track 10)
+$DSETS/Neuro                                    # EEG corpora        (Tracks 1, 2, 6)
 \end{lstlisting}
 Point \code{EBJEPA\_DSETS} here (or read them directly); the maze/Two~Rooms data is
 generated on the fly, so it has no path.
@@ -940,98 +940,199 @@ or sample space is wasteful and predicting in a learned latent space shines. A
 good target has: (i) abundant unlabeled data for pretraining; (ii) a small labeled
 set for a downstream probe; (iii) temporal or multi-view structure the predictor
 can exploit; and (iv) enough noise that reconstruction would be a bad idea. EEG
-(Track~1) is the worked example of all four.
+(Tracks~1--2) are the worked example of all four.
 
 % ===========================================================================
 \subsection{Group A: Carry the JEPA recipe to a new modality}
 
-\begin{trackbox}{Track 1 (Flagship) --- EEG abnormality detection on TUAB \hfill \diffmed{}/\diffhard{}}
-\textbf{The idea.} Pretrain a JEPA on raw clinical EEG, then linear-probe it to
-classify recordings as normal vs abnormal. This mirrors the EEG foundation model
-LaBraM~\citep{LaBraM} but replaces its
-VQ tokenizer and Fourier-spectrum reconstruction with a pure joint-embedding
-objective: \emph{predict patch representations in latent space}, never the noisy
-raw signal. That structural choice is the point. LaBraM had to reconstruct the
-spectrum because raw-EEG reconstruction would not converge; a JEPA sidesteps the
-problem entirely, since the target encoder is free to discard unpredictable
-artifacts.
+\begin{trackbox}{Track 1 (Flagship) --- Read the Brainwaves: abnormality \& epilepsy detection \hfill \diffeasy{}/\diffmed{}}
+\textbf{Usefulness in neuroscience.} This track uses \textbf{electroencephalography
+(EEG)}: non-invasive \emph{neurophysiological recordings} of the brain's electrical
+activity, picked up by a few dozen electrodes on the scalp. Millions of clinical EEGs
+are read by hand every year; a model that recovers the clinical label from the raw
+signal with no hand-engineered features is a step toward automated triage.
 
 \smallskip
-\textbf{Data.} TUH Abnormal EEG Corpus (TUAB), a labeled subset of the TUH EEG
-Corpus~\citep{TUEG}: $\sim$2{,}717 training and 276 evaluation recordings, binary normal/abnormal,
-in EDF format. Pretrain on a small slice of the larger unlabeled TUH corpus (tens
-to $\sim$100 hours is plenty for 24h; do not try to ingest the full corpus).
-Standardize to a common $\sim$21--23 channel montage at 200\,Hz, bandpass
-$0.1$--$75$\,Hz, 60\,Hz notch, z-score per channel.
+\textbf{The idea.} Pretrain a JEPA on raw clinical EEG \emph{without labels}, freeze
+it, and linear-probe whether the embeddings carry a clinical label that applies to the
+\emph{whole recording}: normal vs abnormal (TUAB) and epilepsy vs not (TUEP). This mirrors the EEG
+foundation model LaBraM~\citep{LaBraM} but swaps its reconstruction objective --- a
+vector-quantized tokenizer that rebuilds the Fourier spectrum --- for a pure
+joint-embedding one: \emph{predict patch representations in latent space}, never the raw
+signal. That is the point of a JEPA: predicting in representation space lets the target
+encoder discard the unpredictable parts of low signal-to-noise EEG, rather than forcing a
+(spectral) reconstruction of it.
 
 \smallskip
-\textbf{Beyond TUAB.} The same TUH family gives a natural difficulty ladder for the
-\emph{same} pretrained encoder: \textbf{TUEV} (TUH EEG Events) is a harder 6-class
-event-classification task (e.g. spike/sharp-wave, GPED, PLED, eye-movement,
-artifact, background), and the broader unlabeled \textbf{TUEG} corpus is the
-pretraining pool. A strong project pretrains once and probes both TUAB
-(binary, easy) and TUEV (6-class, hard) to show where the recipe holds and where it
-strains.
-
-\smallskip
-\textbf{More TUH corpora available locally (downloaded for this hackathon).} Two
-additional labeled task corpora extend the difficulty ladder for the \emph{same}
-frozen encoder, beyond TUAB/TUEV: \textbf{TUAR} (TUH EEG Artifact Corpus,
-\code{TUAR\_RAW\_DATA}) --- per-segment \emph{artifact} detection/typing (eye movement,
-muscle, chewing, shiver, electrode, instrument artifacts on the \code{01\_tcp\_ar}
-montage), a clinically useful and noise-robust probe; and \textbf{TUEP} (TUH EEG
-Epilepsy Corpus, \code{TUEP\_RAW\_DATA}) --- \emph{patient-level} epilepsy vs
-no-epilepsy classification (\code{00\_epilepsy} / \code{01\_no\_epilepsy}, multi-session
-per subject, \code{01\_tcp\_ar} and \code{02\_tcp\_le} montages), which forces
-subject-disjoint splits and tests whether the representation transfers to a coarse,
-patient-level label rather than a per-window one. Both are raw EDF (same preprocessing
-as TUAB: common montage, 200\,Hz, bandpass, per-channel z-score) and reuse the existing
-linear-probe harness.
+\textbf{Data (preprocessed, ready to probe).} Two labeled corpora, one label per
+recording, already preprocessed on the cluster (each folder ships a
+\code{<NAME>\_README.md} with the exact task, label layout, and preprocessing):
+\begin{itemize}[leftmargin=1.4em,itemsep=1pt,topsep=2pt]
+  \item \textbf{TUAB} (\code{TUAB\_PREPROCESSED}) --- binary normal/abnormal,
+    2{,}717/276 train/eval recordings, \emph{official patient-disjoint split}.
+  \item \textbf{TUEP} (\code{TUEP\_PREPROCESSED}) --- patient-level epilepsy vs
+    no-epilepsy, 200 patients (100/100), a \emph{weak} label: the diagnosis is per
+    patient, but epileptiform activity is intermittent, so most windows (often whole
+    recordings) of an epileptic patient carry no visible sign of it. You build a
+    subject-disjoint split and pool per-window scores into a patient decision.
+\end{itemize}
+Both: 19-channel 10--20 montage, 200\,Hz, $0.1$--$75$\,Hz bandpass, 60\,Hz notch
+(TUEP average-referenced). Only \emph{windowing} and \emph{per-channel
+normalization} are left to you. You pretrain the JEPA on this same EEG while
+\emph{ignoring} the labels; the labels come back only for the linear probe.
 
 \smallskip
 \textbf{Two framings (start with the first).}
 \begin{itemize}[leftmargin=1.4em,itemsep=1pt,topsep=2pt]
   \item \emph{Temporal} (video-JEPA style, \cref{sec:video}): cut each channel into
     1-second patches; encode the context window; predict the \emph{next} 1-second
-    window's representation across all channels. This is next-frame prediction with
+    window's representation across all channels. Next-frame prediction with
     frames $=$ time windows.
-  \item \emph{Masked} (image-JEPA style, \cref{sec:image}): build the
-    channel$\times$time patch grid, mask a fraction of patches, predict their
-    representations from the visible ones; use EEG augmentations (channel dropout,
-    amplitude scaling, time jitter) for the two-view variant.
+  \item \emph{Augmented-view} (image-JEPA style, \cref{sec:image}): take an epoch
+    (say 10\,s) as one ``image'' and form \emph{two augmented views} of it (two time
+    crops, optionally $+$ masking, amplitude scaling, channel dropout, Gaussian noise);
+    predict one view's representation from the other. The augmentation set is the main
+    design knob.
 \end{itemize}
 
 \smallskip
-\textbf{Files to touch.} A new \code{Dataset} under \file{eb\_jepa/datasets/} that
-loads EDF (use \code{MNE-Python} or \code{braindecode}'s \code{TUHAbnormal}) and
-yields \code{[B, C, T, 1, 1]} patch tensors; a small conv-patch or 1D-conv encoder
-in \file{architectures.py}; the GRU \code{RNNPredictor} for the temporal framing; a
-linear probe modeled on \file{image\_jepa/eval.py}.
+\textbf{Files.} A new \code{Dataset} under \file{eb\_jepa/datasets/} that loads the
+preprocessed EDF (\code{MNE-Python}) and yields one epoch per sample in eb\_jepa's
+\code{[B, C, T, 1, 1]} layout --- \code{B} batch, \code{C} EEG channels, \code{T} time
+samples, the trailing \code{1, 1} the singleton spatial dimensions of the
+\code{[B, C, T, H, W]} convention (EEG has no spatial grid). Then a small conv-patch or
+1D-conv encoder in \file{architectures.py}; the GRU \code{RNNPredictor} for the temporal
+framing; a linear probe modeled on \file{examples/image\_jepa/eval.py}.
 
 \smallskip
-\textbf{Metric.} Balanced Accuracy on the 276-recording eval set (also report
-AUROC). Context: supervised CNNs reach $\sim$0.79 Balanced Accuracy, BIOT
-$\sim$0.796, fine-tuned LaBraM-Base $\sim$0.81. A frozen JEPA \emph{linear probe}
-clearing $\sim$0.78 would be a genuinely strong hackathon result.
+\textbf{Metric.} Balanced Accuracy / AUROC at the \textbf{window (epoch) level} --- each
+window inherits its recording's label and is scored individually, as in recent EEG
+foundation models such as LaBraM and BIOT (TUAB on its official patient-disjoint eval;
+TUEP on your subject-disjoint split). Context: on other models, a supervised CNN-Transformer reaches $\sim$0.78 Balanced
+Accuracy on TUAB, BIOT $\sim$0.80, and fine-tuned LaBraM-Base $\sim$0.81; a frozen-JEPA
+\emph{linear probe} clearing $\sim$0.78 is a strong result.
 
 \smallskip
-\textbf{Gotchas.} Variable montages across recordings (restrict to the common 10--20
-set for simplicity, or use per-electrode embeddings); per-channel normalization is
-mandatory; class-aware metric because the eval split is mildly imbalanced. Report
-metrics at the recording level, not the raw 10-second-window level.
+\textbf{Benchmark (optional).} Put the frozen-JEPA probe next to a foundation model: run
+the same linear probe on a pretrained \textbf{LaBraM}~\citep{LaBraM} (fine-tuned) over
+your split and compare. A frozen JEPA matching a fine-tuned foundation model could be a
+headline result.
+
+\smallskip
+\textbf{Gotchas.} \textbf{Evaluate only on held-out patients} (\emph{patient-disjoint}):
+EEG carries a per-subject ``fingerprint'', so an overlapping split decodes \emph{who} not
+\emph{what}; keep test patients out of both pretraining and the probe fit. The recordings
+ship continuous --- \emph{epoch} them into fixed-length windows (e.g.\ 10\,s) before
+pretraining or probing. Per-channel normalization is mandatory; use a class-aware metric
+(eval is mildly imbalanced); score \emph{per window} --- each window carries its
+recording's label, so report metrics over windows, not over collapsed recordings. For
+TUEP the label is \emph{weak} --- most windows of an epileptic patient look normal, so
+per-window scores are noisy and how you optionally pool them into a patient-level call
+is the interesting part.
 
 \smallskip
 \textbf{poc:} TUAB frozen linear-probe \textbf{AUROC 0.877} (patient-disjoint split,
-near supervised SOTA); on the harder TUEV 6-class event task, $\sim$0.68 AUROC.
-TUAR (artifact) and TUEP (patient-level epilepsy) are downloaded and ready as further
-probes for the same encoder.
-\emph{Data:} \code{/lustre/work/pdl17890/udl806719/datasets/Neuro} ---
-\code{TUAB-TUEV/} (TUAB+TUEV) and \code{TUAB-TUEV-PREPROCESSED/}
-(\code{TUAR\_RAW\_DATA}, \code{TUEP\_RAW\_DATA}, \code{TUEV\_PREPROCESSED}) ~|~ HF
-\href{https://huggingface.co/datasets/DBClab/TUAB-TUEV-PREPROCESSED}{DBClab/TUAB-TUEV-PREPROCESSED}.
+near supervised SOTA). TUEP (patient-level epilepsy) is preprocessed and ready as a
+second, independent task --- its own encoder, pretrained and probed within TUEP
+(\emph{IID}: pretraining and evaluation on the same corpus).
+\emph{Data:} \code{\$DSETS/Neuro/\{TUAB,TUEP\}\_PREPROCESSED} (each with its
+\code{*\_README.md}).
+
+\smallskip
+\textbf{Stretch (cross-dataset transfer).} Beyond the IID protocol above, the two
+corpora enable a real generality test: pretrain the JEPA on one (say TUAB), freeze it,
+then train a \emph{fresh} linear probe on the other's labels (the label spaces differ,
+so only the encoder transfers). Does a representation learned on one cohort generalize
+to another? That transfer is exactly what a foundation model claims.
 \end{trackbox}
 
-\begin{trackbox}{Track 2 --- Audio / speech representation JEPA \hfill \diffmed{}}
+\begin{trackbox}{Track 2 --- When the Brain Misfires: artifact, epileptiform \& seizure detection \hfill \diffmed{}/\diffhard{}}
+\textbf{Usefulness in neuroscience.} Like Track~1 this works on \textbf{EEG}
+(electroencephalography --- scalp recordings of the brain's electrical activity), but the
+clinically meaningful content of a recording is mostly \emph{events} --- spikes,
+seizures, artifacts --- sparse in time and localized to a few channels; finding them is
+the daily work of an epileptologist.
+
+\smallskip
+\textbf{The idea (analogous to Track~1 --- pickable on its own).} Same recipe: pretrain a
+JEPA on raw EEG \emph{without labels}, freeze it, and linear-probe whether the embeddings
+carry the label --- a pure joint-embedding objective (\emph{predict patch representations
+in latent space}, never the raw signal), the same structural alternative to the
+reconstruction tokenizer of LaBraM~\citep{LaBraM}. Pretrain with either framing from Track~1 (temporal next-window
+or augmented-view). What changes from Track~1 is \emph{where} the label lives: not
+one label for the whole recording, but \emph{event-level} labels sitting inside the
+recording on \emph{specific channels} (see the annotation gotcha below). Three corpora of
+rising richness:
+\begin{itemize}[leftmargin=1.4em,itemsep=1pt,topsep=2pt]
+  \item \textbf{TUAR} (\code{TUAR\_PREPROCESSED}) --- per-segment \emph{artifact}
+    detection/typing (eye, muscle, chew, shiver, electrode), 290 recordings; gross
+    and visible, a noise-robust warm-up into the event setting.
+  \item \textbf{TUEV} (\code{TUEV\_PREPROCESSED}) --- 6-class event classification
+    (spike/sharp-wave, two periodic-discharge types GPED/PLED, eye-movement, artifact,
+    background), 359/159 train/eval, imbalanced.
+  \item \textbf{TUSZ} (\code{TUSZ\_PREPROCESSED}) --- \emph{seizures}, the richest:
+    each recording ships \emph{two} annotations, a binary whole-brain
+    \code{seiz}/\code{bckg} timeline (detection) and a per-channel \emph{seizure
+    type} (8 classes, typing); 7{,}515 recordings, official train/dev/eval,
+    $\sim$13\% seizure-bearing.
+\end{itemize}
+
+\smallskip
+\textbf{The annotation gotcha (read the README).} TUEV/TUAR/TUSZ events are
+time-stamped on a \emph{bipolar} montage: each annotation gives a channel that names a
+\emph{pair} of electrodes (not a row of the signal), a start and end time, and a label
+--- so turning those annotations into training samples is itself part of the task. Each
+folder's \code{<NAME>\_README.md} spells this out.
+
+\smallskip
+\textbf{Data (preprocessed).} All three at 200\,Hz, $0.1$--$75$\,Hz bandpass, 60\,Hz
+notch (TUSZ average-referenced; 19--23 channels depending on the bipolar montage the
+labels need). The recordings ship continuous --- you must first \emph{epoch} them into
+fixed-length windows; windowing and per-channel normalization are left to you.
+
+\smallskip
+\textbf{Gotcha (patient-disjoint).} Evaluate only on held-out patients --- EEG carries a
+per-subject ``fingerprint'', so an overlapping split decodes \emph{who} not \emph{what};
+keep test patients out of pretraining and the probe fit. TUEV/TUSZ ship official splits;
+build your own (patient-disjoint) for TUAR.
+
+\smallskip
+\textbf{Files.} A \code{Dataset} that loads the preprocessed EDF (\code{MNE-Python}) and
+yields one epoch per sample in eb\_jepa's \code{[B, C, T, 1, 1]} layout (\code{B} batch,
+\code{C} EEG channels, \code{T} time samples; the trailing \code{1, 1} are the singleton
+spatial dims of the \code{[B, C, T, H, W]} convention). Then a conv-patch / 1D-conv
+encoder in \file{architectures.py}; the GRU \code{RNNPredictor} for the temporal framing;
+a linear probe modeled on \file{examples/image\_jepa/eval.py} --- \emph{plus} per-event
+window extraction from the \code{.csv} / \code{.csv\_bi} annotations (the event-specific
+part).
+
+\smallskip
+\textbf{Metric.} Per-window or per-event balanced F1 / AUROC; for TUSZ do
+\emph{detection} (binary, every window labeled, whole-brain --- tidiest) before
+\emph{typing} (multi-class, per-channel, imbalanced). Design the metric so a
+\code{bckg}-only predictor does not look good (events/seizures are rare).
+
+\smallskip
+\textbf{Benchmark (optional).} Compare your event-level probe against a fine-tuned
+\textbf{LaBraM}~\citep{LaBraM} foundation model on the same windows and splits.
+
+\smallskip
+\textbf{poc:} on the TUEV 6-class event task, frozen-JEPA $\sim$0.68 AUROC --- vs the
+easy TUAB 0.877 of Track 1, this is where the recipe strains. TUAR and TUSZ are
+preprocessed and ready as further \emph{independent} tasks --- each its own encoder,
+pretrained and probed within that corpus (\emph{IID}).
+\emph{Data:} \code{\$DSETS/Neuro/\{TUAR,TUEV,TUSZ\}\_PREPROCESSED} (each with its
+\code{*\_README.md}).
+
+\smallskip
+\textbf{Stretch (cross-dataset transfer).} Beyond the IID setting, the three event
+corpora are a natural transfer test: pretrain the JEPA on one, freeze it, then train a
+\emph{fresh} probe on another's events (the label spaces differ, so only the encoder
+transfers). Does an encoder trained on one kind of event generalize to another? That
+generality is exactly what a foundation model claims.
+\end{trackbox}
+
+\begin{trackbox}{Track 3 --- Audio / speech representation JEPA \hfill \diffmed{}}
 \textbf{Goal.} Self-supervised audio features, probed on keyword spotting (Speech
 Commands) or environmental sound (ESC-50/UrbanSound). Treat log-mel spectrograms as
 single-channel ``images'' for the image-JEPA masked/augmented setting, or treat mel
@@ -1049,7 +1150,7 @@ augmentation (VICReg) variant beat a masked-predictive one.
 (Google; not on HF).
 \end{trackbox}
 
-\begin{trackbox}{Track 3 --- Wearable biosignals: ECG / IMU / PPG \hfill \diffeasy{}/\diffmed{}}
+\begin{trackbox}{Track 4 --- Wearable biosignals: ECG / IMU / PPG \hfill \diffeasy{}/\diffmed{}}
 \textbf{Goal.} JEPA on accelerometer/gyroscope or ECG streams; probe on Human
 Activity Recognition (UCI-HAR, PAMAP2) or arrhythmia (PhysioNet). These are
 low-spatial multivariate time series, the ideal fit for the GRU predictor and
@@ -1058,7 +1159,7 @@ low-spatial multivariate time series, the ideal fit for the GRU predictor and
 / F1. The lowest-friction new-modality track, good for a first-time team.
 \end{trackbox}
 
-\begin{trackbox}{Track 4 --- Latent dynamics of physical fields (The Well) \hfill \diffmed{}/\diffhard{}}
+\begin{trackbox}{Track 5 --- Latent dynamics of physical fields (The Well) \hfill \diffmed{}/\diffhard{}}
 \textbf{Goal.} The Well~\citep{the_well} is a 15\,TB collection of 16
 physics-simulation datasets (fluid dynamics, magneto-hydrodynamics, astrophysics,
 acoustics, active matter) stored as spatiotemporal fields, the continuous,
@@ -1087,29 +1188,96 @@ open question: here the gain is representational, not pixel-accurate rollout.
 ~|~ HF \href{https://huggingface.co/datasets/polymathic-ai/gray_scott_reaction_diffusion}{polymathic-ai/gray\_scott\_reaction\_diffusion}.
 \end{trackbox}
 
-\paragraph{Forecasting as action-conditioned prediction (Tracks 5--7).} The
-three time-series tracks below share one mapping onto the codebase. The
-AC-video-JEPA (\cref{sec:acvideo}) is a latent dynamics model: given a state and
-an \emph{action}, it predicts the next state's representation. For a time series
-the ``action'' is whatever exogenous or control channel drives the
-system---actuator commands, manipulated set-points, the operating regime, known
-future covariates, or order-flow events---and ``predict the future'' is simply
-forecasting the next state in latent space. Anomaly detection then falls out for
+\paragraph{Action-conditioned prediction: planning and forecasting (Tracks 6--9).}
+The action-conditioned tracks below share one mapping onto the codebase. The
+AC-video-JEPA (\cref{sec:acvideo}) is a latent dynamics model: given a state and an
+\emph{action}, it predicts the next state's representation. The ``action'' is
+whatever exogenous or control signal drives the system --- a task \emph{cue} for EEG
+motor imagery (Track 6), or actuator commands, manipulated set-points, the operating
+regime, known future covariates, or order-flow events for the time-series tracks
+(7--9) --- and ``predict the future'' is forecasting the next state in latent space. Anomaly detection then falls out for
 free: a fault or an attack is a \emph{violation of expectation}, a spike in
 prediction energy against the \emph{realised} future (rather than against a
 planning goal) that the action-conditioned dynamics cannot explain---the same
 signal the intuitive-physics track uses on impossible videos. Concretely: fork
 the AC-video-JEPA, feed it \code{(obs, action)} slices through a new
 \code{TrajDataset} (\cref{sec:extension}), drop the planner, and read off either
-the rollout forecast or the per-step energy. Two gotchas apply to all three: the
+the rollout forecast or the per-step energy. Two gotchas apply to all four: the
 hardcoded \code{action\_dim} (\cref{sec:acvideo}) and mandatory per-channel
 normalization (\cref{sec:extension}). With no control channel, the same recipe
 degenerates to the video-JEPA forecasting setting (\cref{sec:video}).
 
+\begin{trackbox}{Track 6 --- Mind in Motion: action-conditioned motor-imagery prediction (BCI~IV-2a) \hfill \diffmed{}/\diffhard{}}
+\textbf{Usefulness in neuroscience.} Decoding \emph{intended} movement from EEG
+(electroencephalography --- scalp recordings of the brain's electrical activity) is the
+core of brain--computer interfaces that let paralysed patients drive a cursor or a
+prosthetic.
+
+\smallskip
+\textbf{The idea (three parts, easy$\to$hard --- attempt all three).} BCI~IV-2a is
+cue-based motor imagery: on each trial the subject imagines moving the left hand, right
+hand, feet, or tongue. Every part starts from the \emph{same} JEPA encoder pretrained
+self-supervised on these recordings (no labels); unlike the other tracks, here you are
+expected to work through all three:
+\begin{enumerate}[leftmargin=1.5em,itemsep=1pt,topsep=2pt]
+  \item \emph{Within-subject probe (warm-up).} Freeze the encoder and linear-probe the 4
+    classes per subject, fitting on session~\code{T} and testing on session~\code{E}
+    (same person, different day) --- the original competition protocol.
+  \item \emph{Cross-subject probe (hard).} The same probe, but \emph{leave-subjects-out}:
+    fit on some subjects, test on held-out ones. Motor-imagery patterns are very
+    person-specific, so this is the honest subject-disjoint test.
+  \item \emph{Action-conditioned prediction (stretch).} The cue is an
+    externally-imposed \emph{action}, so this is the one EEG corpus that maps onto the
+    AC-video-JEPA (\cref{sec:acvideo}): encode the pre-cue baseline, condition the
+    predictor on the cue, predict the post-cue imagery representation, and decode the cue
+    by which action best reproduces the realised future (the inverse-dynamics head, or
+    energy over the 4 actions). Encoder and predictor are trained \emph{jointly} with
+    var/cov$+$IDM anti-collapse and no EMA target.
+\end{enumerate}
+
+\smallskip
+\textbf{Data (preprocessed).} \code{BCICIV\_2a\_PREPROCESSED} --- 9 subjects $\times$
+2 sessions, 288 balanced trials/session, 22 EEG channels at 250\,Hz, already
+$0.5$--$100$\,Hz bandpass $+$ 50\,Hz notch (European data; the 3 EOG channels are
+dropped). A per-trial cue$+$label \code{.csv} is provided for \emph{both} sessions;
+\code{BCICIV\_2a\_README.md} gives the cue timing ($t{=}2$\,s), the imagery window
+$[2,6]$\,s, and the labels.
+
+\smallskip
+\textbf{Files.} For the warm-up, a \code{Dataset} that loads the preprocessed EDF
+(\code{MNE-Python}) and yields one epoch per sample in eb\_jepa's \code{[B, C, T, 1, 1]}
+layout (\code{B} batch, \code{C} EEG channels, \code{T} time samples; the trailing
+\code{1, 1} are the singleton spatial dims of the \code{[B, C, T, H, W]} convention), a
+conv-patch / 1D-conv encoder in \file{architectures.py}, and a linear probe modeled on
+\file{examples/image\_jepa/eval.py}. For the stretch, a \code{TrajDataset}
+(\cref{sec:extension}) yielding \code{(pre-cue, cue, post-cue)} slices into the
+AC-video-JEPA, the GRU \code{RNNPredictor}, and the IDM head as the cue decoder. Set the
+hardcoded \code{action\_dim} to the 4-way cue.
+
+\smallskip
+\textbf{Metric.} 4-class accuracy / Cohen's $\kappa$ on held-out sessions (part~1) and
+held-out subjects (part~2). For the action-conditioned part~3: does conditioning on the
+\emph{correct} cue predict the realised future better than a wrong one, and what is the
+IDM cue-decoding accuracy? Judge it on whether conditioning changes the prediction at
+all, not on raw accuracy.
+
+\smallskip
+\textbf{Benchmark (optional).} For the probe parts, compare against a pretrained
+\textbf{LaBraM}~\citep{LaBraM} foundation model on the same within-/cross-subject splits.
+
+\smallskip
+\textbf{Gotchas.} The EDF is continuous --- epoch each trial to its cue-locked imagery
+window $[2,6]$\,s before probing. Tiny ($\sim$288 trials/subject); cross-subject is
+genuinely hard (person-specific sensorimotor rhythms); EOG must never enter the
+classifier (already dropped); 50\,Hz notch, not 60. Parts~1--2 are the safe deliverable;
+part~3 is the ambitious one.
+\emph{Data:} \code{\$DSETS/Neuro/BCICIV\_2a\_PREPROCESSED} (with
+\code{BCICIV\_2a\_README.md}).
+\end{trackbox}
 
 % ===================== PASTE FROM HERE ========================================
 
-\begin{trackbox}{Track 5 --- Scientific multivariate time-series forecasting \hfill \diffmed{}/\diffhard{}}
+\begin{trackbox}{Track 7 --- Scientific multivariate time-series forecasting \hfill \diffmed{}/\diffhard{}}
 \textbf{Goal.} Pretrain a JEPA to predict the next window of a noisy scientific
 multivariate series in latent space, then probe it on long-horizon forecasting or
 regime classification. The research question: does anti-collapse latent prediction
@@ -1128,7 +1296,7 @@ influenza-like-illness counts). For breadth across scientific domains (solar,
 temperature, hospital, nature), the Monash archive~\citep{MonashTSF} offers
 $\sim$25 datasets in a single \code{.tsf} format (\code{Monash-University/monash\_tsf}
 on Hugging Face). For spatiotemporal \emph{fields} rather than vector series, see
-Track~4 (The Well) and ERA5/WeatherBench.
+Track~5 (The Well) and ERA5/WeatherBench.
 
 \smallskip
 \textbf{Action-conditioned angle.} \textbf{ETT} is the cleanest fit: condition the
@@ -1173,7 +1341,7 @@ forecasting in general ($n{=}1$ seed, ETTh1 only).
 ~|~ HF \href{https://huggingface.co/datasets/ailuntz/ETT-small}{ailuntz/ETT-small}.
 \end{trackbox}
 
-\begin{trackbox}{Track 6 --- Financial time series: limit order books \& forecasting \hfill \diffmed{}/\diffhard{}}
+\begin{trackbox}{Track 8 --- Financial time series: limit order books \& forecasting \hfill \diffmed{}/\diffhard{}}
 \textbf{Goal.} Self-supervised features on high-frequency market data, probed on
 mid-price-movement prediction. The question: can latent prediction extract a usable
 signal from order-book dynamics that survives the brutal noise floor of financial
@@ -1187,7 +1355,7 @@ levels (40 features: bid/ask price and volume), and 3-class mid-price-direction
 labels (up / stationary / down) at horizons $k \in \{10, 20, 30, 50, 100\}$ ticks;
 the standard protocol trains on the first seven days and tests on the last three.
 For lower-frequency forecasting, the \textbf{Exchange-Rate} set (eight countries'
-daily rates)~\citep{LSTNet} sits in the same LTSF suite as Track~5, and the Monash
+daily rates)~\citep{LSTNet} sits in the same LTSF suite as Track~7, and the Monash
 archive~\citep{MonashTSF} adds further financial series.
 
 \smallskip
@@ -1228,13 +1396,13 @@ from \emph{VICReg, not latent prediction} (volatility-regime acc \textbf{0.94} v
 $0.63$). \emph{Takeaway:} daily returns here are too close to efficient-market noise and the
 engineered inputs are already informative, so this dataset cannot separate latent-prediction
 from direct forecasting --- for a fair test of the track's hypothesis prefer a structured
-series with learnable dynamics (the LTSF / Exchange-Rate suites of Track~5, or FI-2010 LOB
+series with learnable dynamics (the LTSF / Exchange-Rate suites of Track~7, or FI-2010 LOB
 above).
 \emph{Data:} \code{/lustre/work/pdl17890/udl806719/datasets/Finance/fintime\_prep}
 ~|~ HF \href{https://huggingface.co/datasets/thesven/fintime-decoder-dataset}{thesven/fintime-decoder-dataset}.
 \end{trackbox}
 
-\begin{trackbox}{Track 7 --- Action-conditioned anomaly prediction \& predictive maintenance \hfill \diffmed{}/\diffhard{}}
+\begin{trackbox}{Track 9 --- Action-conditioned anomaly prediction \& predictive maintenance \hfill \diffmed{}/\diffhard{}}
 \textbf{The idea.} A JEPA trained only on \emph{healthy} operation learns the
 action-conditioned dynamics of a system; at test time a fault, attack, or
 degradation shows up as a spike in prediction energy---the model expected one
@@ -1288,7 +1456,7 @@ penalises late predictions more) on FD001 first, then the harder FD004.
 \end{trackbox}
 
 
-\begin{trackbox}{Track 8 --- 3D point clouds / LiDAR \hfill \diffhard{}}
+\begin{trackbox}{Track 10 --- 3D point clouds / LiDAR \hfill \diffhard{}}
 \textbf{Goal.} View-invariant JEPA on point clouds (ModelNet/ShapeNet): two
 augmented samplings/rotations of an object are the two views (image-JEPA setting),
 probed on shape classification. \textbf{Files:} a point-cloud dataset with geometric
@@ -1307,7 +1475,7 @@ SO(3) --- accuracy drops monotonically as the demanded rotation invariance grows
 % ===========================================================================
 \subsection{Group B: Push the vision and robotics examples}
 
-\begin{trackbox}{Track 9 --- Learned cost / value for planning \hfill \diffmed{}/\diffhard{}}
+\begin{trackbox}{Track 11 --- Learned cost / value for planning \hfill \diffmed{}/\diffhard{}}
 \textbf{Goal.} Distance-in-latent-space is a crude planning cost. Replace it with a
 learned cost or value function (TD-MPC style~\citep{TDMPC2,TD-MPC}) trained on the
 world model's own rollouts, so the agent optimizes a quantity that correlates with
@@ -1325,7 +1493,7 @@ matched A$^*$ subgoals; greedy global planning is 0\% for both costs.
 \emph{Data:} maze generated online (no dataset path / HF).
 \end{trackbox}
 
-\begin{trackbox}{Track 10 --- Hierarchical / multi-timescale world model \hfill \diffhard{}}
+\begin{trackbox}{Track 12 --- Hierarchical / multi-timescale world model \hfill \diffhard{}}
 \textbf{Goal.} JEPAs here predict at a single temporal resolution; intelligent
 planning wants several. Add a coarse predictor that models long-horizon
 abstractions on top of the fine per-step predictor, and plan with the coarse level
@@ -1344,7 +1512,7 @@ greedy and 0\% for a random-walk baseline). Co-training the two levels did
 \emph{Data:} maze generated online (no dataset path / HF).
 \end{trackbox}
 
-\begin{trackbox}{Track 11 --- Stress-test the recipe under factors of variation \hfill \diffhard{}}
+\begin{trackbox}{Track 13 --- Stress-test the recipe under factors of variation \hfill \diffhard{}}
 \textbf{Goal.} \texttt{eb\_jepa}'s Two Rooms is deliberately tiny. The open question
 is whether the \emph{minimal} recipe (VC + sim + IDM, distance-cost MPPI) survives
 realistic perturbations, and which term breaks first. Train an AC-video-JEPA-style
@@ -1359,7 +1527,7 @@ which regularizer term must be strengthened as the world gets harder. Ambitious 
 high-signal: it tells you where the toy recipe actually ends.
 \end{trackbox}
 
-\begin{trackbox}{Track 12 --- Does intuitive physics emerge? \hfill \diffmed{}}
+\begin{trackbox}{Track 14 --- Does intuitive physics emerge? \hfill \diffmed{}}
 \textbf{Goal.} Recent work shows physical intuition emerges from self-supervised
 video pretraining~\citep{garrido2025intuitivephysicsunderstandingemerges}. Test it
 in miniature on the video-JEPA: feed it physically plausible vs impossible Moving
