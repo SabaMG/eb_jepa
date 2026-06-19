@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# One-shot setup script for EB-JEPA on the HTW cluster.
+# dirnamet setup script for EB-JEPA on the HTW cluster.
 #
 # Clone the repo ANYWHERE (even your home) and run `bash setup.sh`: it relocates
 # itself to your work partition ($WORK/eb_jepa), sets everything up there, and leaves
@@ -10,7 +10,11 @@ set -e
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # --- Self-relocate to the work partition --------------------------------------
-TARGET_WORK="${EBJEPA_WORK:-/lustre/work/pdl17890/$USER}"
+# Resolve the personal work dir via env.sh, which auto-detects your team folder
+# (/lustre/work/vivatech-<team>/$USER) and honors EBJEPA_WORK. Sourcing it here makes
+# relocation target the right place; it is sourced again below for the rest of setup.
+source "$REPO_ROOT/env.sh"
+TARGET_WORK="$WORK"
 TARGET="$TARGET_WORK/eb_jepa"
 if [ "$REPO_ROOT" != "$TARGET" ]; then
     echo "=== Relocating EB-JEPA to your work partition ==="
@@ -90,8 +94,12 @@ if [[ "$ARCH" == "x86_64" ]]; then
     mkdir -p "$COMPUTE_UV_DIR" "$WORK/uv_cache/$COMPUTE_ARCH"
     echo ""
     echo ">>> Submitting $COMPUTE_ARCH venv sync job to SLURM..."
+    # Account resolved by env.sh (sacctmgr, or the team/group name as fallback). Omit the
+    # flag entirely if still unknown, so SLURM falls back to your default account.
+    SETUP_ACCT_FLAG=""
+    [ -n "${EBJEPA_SLURM_ACCOUNT:-}" ] && SETUP_ACCT_FLAG="--account=$EBJEPA_SLURM_ACCOUNT"
     SYNC_JOB=$(sbatch \
-        --partition=defq --account=pdl17890 \
+        --partition=defq $SETUP_ACCT_FLAG \
         --nodes=1 --ntasks=1 --cpus-per-task=4 \
         --time=0:30:0 --job-name=eb_jepa_setup \
         --output="$WORK/logs/setup_${COMPUTE_ARCH}_%j.out" \
