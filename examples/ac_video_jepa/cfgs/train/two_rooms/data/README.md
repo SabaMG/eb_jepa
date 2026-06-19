@@ -149,7 +149,7 @@ episodes simultaneously — one batched MPPI call instead of N sequential ones.
 # cfgs/eval/two_rooms/eval.yaml
 meta:
   num_eval_episodes: 20
-  n_parallel: 20   # 1 = sequential (default), >1 = parallel
+  n_parallel: 1    # 1 = sequential (default), >1 = parallel
 ```
 
 > **Note:** a single parallel batch of K episodes is one correlated draw, not K

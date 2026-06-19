@@ -72,6 +72,14 @@ JEPA for world modeling + planning in Two Rooms environment.
 
 ## 🚀 Installation
 
+### HTW cluster — quick start (hackathon only)
+
+> Skip this section unless you are on the HTW hackathon cluster — the generic install below is all you need locally.
+
+Please follow the [setup instructions](setup.md) before starting the project.
+
+---
+
 ### Local / generic (start here)
 
 We use [uv](https://docs.astral.sh/uv/guides/projects/) for package management.
@@ -105,38 +113,6 @@ export EBJEPA_CKPTS=/path/to/checkpoints
 ```
 
 Verify the install with `uv run pytest tests/`.
-
-### HTW cluster — quick start (optional, hackathon only)
-
-> Skip this section unless you are on the HTW hackathon cluster — the generic install above is all you need locally.
-
-**Everything must live on `/lustre/work`, not your home** — the `/lustre/home` quota is
-small and blocks git, venvs and model downloads. You don't have to clone in the right
-place: `setup.sh` **relocates itself to `/lustre/work` automatically**.
-
-```bash
-# 1. clone anywhere (even your home) and run setup
-git clone https://github.com/Trick5t3r/eb_jepa.git eb_jepa && cd eb_jepa
-bash setup.sh
-#    -> the repo is copied to /lustre/work/pdl17890/$USER/eb_jepa, set up there,
-#       and the folder you cloned in is reduced to a one-line pointer README.
-
-# 2. move into the work copy (the pointer README tells you the exact path)
-cd /lustre/work/pdl17890/$USER/eb_jepa
-
-# 3. make it persistent + verify
-echo "source $(pwd)/env.sh" >> ~/.bashrc && source ~/.bashrc
-sbatch slurm_test.sh        # runs pytest on a GPU node
-```
-
-`env.sh` derives everything from `$USER`, keeps **all** caches (uv, HuggingFace, torch,
-triton/`torch.compile`, pip, W&B) under `$WORK/.cache` — nothing touches home. Override the work
-root with `export EBJEPA_WORK=/your/path` before running setup, and set `EBJEPA_DSETS` to your
-dataset folder.
-
-
-
----
 
 ## 🏋️ Training
 
@@ -177,7 +153,7 @@ checkpoints/
 
 | Command | Description |
 |---------|-------------|
-| `--example {name}` | Choose: `image_jepa`, `video_jepa`, `ac_video_jepa`, `maze`, `fintime`, `ltsf`, `eeg`, `audio`, `pointcloud`, `gray_scott` |
+| `--example {name}` | Choose: `image_jepa`, `video_jepa`, `ac_video_jepa`, `maze`, `fintime`, `ltsf`, `eeg`, `audio`, `pointcloud`, `gray_scott`, `intuitive_physics`, `factors_of_variation` |
 | `--fname {path}` | Run the sweep specified in the config at `{path}` |
 | `--single` | Launch single job (dev mode) |
 | `--sweep {name}` | Custom sweep name |
@@ -230,7 +206,7 @@ For detailed wandb sweep analysis (parallel coordinates, hyperparameter importan
 1. Use `--use-wandb-sweep` flag when launching
 2. Go to wandb web UI → left pane → **"Sweeps"** → click your sweep name
 
-**SLURM Configuration:** To customize SLURM parameters (partition, account, memory, etc.), edit the `SLURM_DEFAULTS` dictionary at the top of `examples/launch_sbatch.py`.
+**SLURM Configuration:** SLURM parameters default to the HTW cluster and are read from `EBJEPA_SLURM_*` env vars (set by `env.sh`, which also auto-detects your account/QOS per user). Override per launch with the CLI flags `--partition`/`--account`/`--cpus-per-task`/`--time-min`/`--gpus-per-node`, or export the matching `EBJEPA_SLURM_*` var. The `SLURM_DEFAULTS` dictionary at the top of `examples/launch_sbatch.py` holds the fallbacks.
 
 </details>
 

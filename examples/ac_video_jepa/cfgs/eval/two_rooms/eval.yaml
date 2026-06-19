@@ -1,6 +1,7 @@
 meta:
   num_eval_episodes: 20
   plan_suffix: _sum_diffs # cem_sum_diffs | mppi_last_obj
+  n_parallel: 1           # 1 = sequential (default), >1 = batched parallel MPPI eval
 env:
   n_allowed_steps: 200
   level: normal

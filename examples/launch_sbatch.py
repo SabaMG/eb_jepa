@@ -154,6 +154,7 @@ EXAMPLE_CONFIGS = {
         "config": "examples/intuitive_physics/cfgs/train.yaml",
         "module": "examples.intuitive_physics.main",
         "metric": "train/pred_loss",
+    },
     "factors_of_variation": {
         "config": "examples/factors_of_variation/cfgs/train.yaml",
         "module": "examples.factors_of_variation.main",

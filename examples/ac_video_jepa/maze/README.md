@@ -115,7 +115,7 @@ moving the encoder erodes the fragile wall-aware fine WM the low level relies on
 |---|---|---|
 | environment | `env_name: maze` | `datasets/utils.py` |
 | maze geometry | `maze_height/width`, `cell_size`, `min_path_length`, `wall_bump_prob` | `cfgs/train/maze/train_maze*.yaml`, `data_config.yaml` |
-| planning cost | `planning_objective.objective_type` ∈ {`repr_dist`,`probe_pos`,`learned_value`} | `cfgs/planning/maze/planning_*.yaml` → `objective_name_map` |
+| planning cost | `planning_objective.objective_type` ∈ {`repr_dist`,`repr_dist_collision`,`probe_pos`,`learned_value`} | `cfgs/planning/maze/planning_*.yaml` → `objective_name_map` |
 | TD-MPC value head | `value_coeff`, `value_gamma`, `value_lr`, `freeze_world_model` | `main.py` |
 | aux-position | `aux_pos_coeff` | `main.py`, `cfgs/train/maze/train_maze*.yaml` |
 | action-snap / waypoints | `snap_actions_to_grid`, `waypoint_mode` | `eb_jepa/planning.py`, `cfgs/planning/maze/planning_*.yaml` |

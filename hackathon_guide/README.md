@@ -25,7 +25,7 @@ build to bibtex).
 ```
 main.tex                  # the whole guide (single file: preamble + 7 sections)
 figures/                  # the 3 figures used, reused from the paper source
-main.bbl                  # reused bibliography (58 entries)
+main.bbl                  # reused bibliography (72 entries)
 iclr2026_conference.sty   # ICLR 2026 conference style (required, not in TeX Live)
 iclr2026_conference.bst   # ICLR 2026 bib style (only needed to regenerate the .bbl)
 Makefile, README.md, .gitignore

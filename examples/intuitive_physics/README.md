@@ -26,9 +26,9 @@ python -m examples.intuitive_physics.main --fname examples/intuitive_physics/cfg
 python -m examples.intuitive_physics.eval --ckpt checkpoints/intuitive_physics/seed1/latest.pth.tar
 ```
 
-For multi-seed runs on the cluster, register the example in
-`examples/launch_sbatch.py` (`EXAMPLE_CONFIGS`) and launch with
-`python -m examples.launch_sbatch --example intuitive_physics ...`.
+For multi-seed runs on the cluster, launch with
+`python -m examples.launch_sbatch --example intuitive_physics ...`
+(the example is already registered in `examples/launch_sbatch.py`).
 
 ## What to look for
 
