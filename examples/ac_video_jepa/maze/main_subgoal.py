@@ -38,6 +38,8 @@ def main():
     loader, _, data_config, data_pipeline = init_data(
         env_name=cfg.data.env_name,
         cfg_data=OmegaConf.to_container(cfg.data, resolve=True), device=device)
+    if data_pipeline is not None:
+        data_pipeline.warm_up()  # fill manager.current before iterating (else NoneType crash)
 
     jepa, f = build_fine(cfg, data_config, device)
     info = load_checkpoint(Path(fine_ckpt), jepa, optimizer=None, scheduler=None,
