@@ -31,6 +31,13 @@ echo ">>> uv sync..."
 uv sync --project "$REPO"
 
 ROOT="${EBJEPA_CKPTS:-$EBJEPA_WORK/ckpts}/maze/baseline_full"
+# env.sh defaults EBJEPA_CKPTS to $WORK/checkpoints, but the baseline was trained
+# into $WORK/ckpts -- fall back to wherever aux/latest.pth.tar actually lives.
+ALT="$EBJEPA_WORK/ckpts/maze/baseline_full"
+if [ ! -f "$ROOT/aux/latest.pth.tar" ] && [ -f "$ALT/aux/latest.pth.tar" ]; then
+    echo "NOTE: aux not under $ROOT; using $ALT"
+    ROOT="$ALT"
+fi
 SG="$ROOT/sg"; EVAL="$ROOT/eval"; FINE="$ROOT/aux/latest.pth.tar"
 mkdir -p "$SG" "$EVAL"
 
