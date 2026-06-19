@@ -40,9 +40,14 @@ if [ ! -f "$FINE" ]; then
 fi
 
 # --- 3. subgoal predictor (high level, frozen WM) ---------------------------
-echo ">>> [3/4] subgoal predictor (N=4, 12 epochs) -> $SG"
-uv run --project "$REPO" python -m examples.ac_video_jepa.maze.main_subgoal \
-    "$FINE" "$SG" 4 12
+# Skip if already trained -- lets you re-run the eval alone without redoing ~36 min.
+if [ -f "$SG/subgoal.pth.tar" ]; then
+    echo ">>> [3/4] subgoal predictor already trained, skipping -> $SG/subgoal.pth.tar"
+else
+    echo ">>> [3/4] subgoal predictor (N=4, 12 epochs) -> $SG"
+    uv run --project "$REPO" python -m examples.ac_video_jepa.maze.main_subgoal \
+        "$FINE" "$SG" 4 12
+fi
 
 # --- 4. A*-free hierarchical eval = THE REFERENCE NUMBER --------------------
 echo ">>> [4/4] A*-free eval (greedy reacher) -> $EVAL"

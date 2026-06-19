@@ -39,7 +39,8 @@ def main():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     cfg = OmegaConf.load(Path(fine_ckpt).parent / "config.yaml")
     _, _, env_config, _ = init_data(env_name=cfg.data.env_name,
-                                    cfg_data=OmegaConf.to_container(cfg.data, resolve=True))
+                                    cfg_data=OmegaConf.to_container(cfg.data, resolve=True),
+                                    device=device)  # required when pipeline.mode='stream'
     cell_size = float(env_config.cell_size)
     # Per-episode step budget = factor * A* path length + margin. A* is used ONLY
     # to size the time limit (difficulty-proportional), NEVER for the agent's
