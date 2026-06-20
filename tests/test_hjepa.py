@@ -117,6 +117,28 @@ def test_coarse_beam_picks_option_toward_goal():
     assert torch.allclose(s_sg, torch.tensor([[1.0, 0.0]]))   # one macro-step toward goal
 
 
+def test_rank_fine_actions_deprioritizes_dreamed_walls():
+    from eb_jepa.hjepa import rank_fine_actions
+
+    class WallJEPA:
+        # cardinal 0 = [1,0] is a 'wall': the WM predicts stay (no motion); others move
+        def predictor(self, z, a):
+            out = z.clone()
+            for i in range(z.shape[0]):
+                ax, ay = float(a[i, 0, 0]), float(a[i, 1, 0])
+                if ax > 0:        # dir 0 -> blocked, predict 'stay'
+                    continue
+                out[i, 0, 0, 0, 0] += ax
+                out[i, 1, 0, 0, 0] += ay
+            return out
+
+    psi = lambda z: z.flatten(2).mean(-1)[:, :2]
+    z_t = torch.zeros(1, 4, 1, 1, 1)
+    s_sg = torch.tensor([[1.0, 0.0]])    # subgoal points exactly where the BLOCKED dir 0 would go
+    order = rank_fine_actions(WallJEPA(), psi, z_t, s_sg, cell_size=1.0)
+    assert order[-1] == 0                # dir 0 is a dreamed wall -> ranked last despite pointing at goal
+
+
 def test_pick_fine_action_descends_coarse_distance():
     jepa = _StubJEPA()
     psi = lambda z: z.flatten(2).mean(-1)[:, :2]   # coarse state = position

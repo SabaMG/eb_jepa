@@ -166,17 +166,21 @@ def coarse_beam(p_high, s0, s_goal, horizon, width):
 
 
 @torch.no_grad()
-def rank_fine_actions(jepa, psi, z_t, s_sg, cell_size):
+def rank_fine_actions(jepa, psi, z_t, s_sg, cell_size, block_eps=1e-3):
     """Rank the 4 cardinals by coarse-space distance of their 1-step fine prediction to
-    s_sg (best first). The eval loop consumes this with execution-feedback blocked-skip
-    (a blocked move makes the WM predict 'stay' -> no progress -> the agent tries the
-    next-best instead of deadlocking on a wall). Returns a list of dir indices 0..3."""
+    s_sg (best first), with MODEL-BASED wall avoidance (the "dreamer-scale" fix): a move
+    whose 1-step WM dream does not change the latent (`||predictor(z,a) - z|| < block_eps`)
+    is a wall -> the wall-aware WM predicts "stay" -> push it to the back. So the agent
+    avoids walls *in imagination* (no bumping needed) instead of relying on execution
+    feedback. Returns a list of dir indices 0..3, moving actions first."""
     device = z_t.device
     dirs = CARDINALS.to(device)
     a = (dirs * cell_size).unsqueeze(-1)
     z_next = jepa.predictor(z_t.expand(4, -1, -1, -1, -1).contiguous(), a)
-    d = torch.norm(psi(z_next) - s_sg, dim=-1)
-    return torch.argsort(d).tolist()
+    moved = (z_next - z_t.expand_as(z_next)).flatten(1).norm(dim=1) > block_eps   # [4]
+    d = torch.norm(psi(z_next) - s_sg, dim=-1)                                     # [4]
+    d_eff = torch.where(moved, d, d + 1e6)            # blocked (dreamed "stay") -> ranked last
+    return torch.argsort(d_eff).tolist()
 
 
 @torch.no_grad()
