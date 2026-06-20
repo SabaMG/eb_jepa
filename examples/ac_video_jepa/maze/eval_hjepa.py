@@ -116,7 +116,7 @@ def main():
     def pos_dot(z):
         """Decode a latent's probe position to an env-rendered dot mask (for the overlay)."""
         xy = norm.unnormalize_location(xy_head(z.float()).permute(0, 2, 1)[:, 0])[0]
-        xy = torch.clamp(xy, 0, img_sz - 1)          # dreamed latents can decode just off-maze
+        xy = torch.clamp(xy, 0, img_sz - 1).to(env.target_position.device)   # match env render device
         return env._render_dot_at(xy)[0].detach().cpu().numpy()              # [H,W] dot mask
 
     def subgoal_dot(z_t, o_star):
