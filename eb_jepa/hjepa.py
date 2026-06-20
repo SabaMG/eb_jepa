@@ -61,7 +61,7 @@ class CoarseEncoder(nn.Module):
     encoder); dims >= 2 are mean-pooled to [N, C], then an MLP maps to [N, coarse_dim].
     """
 
-    def __init__(self, in_dim, coarse_dim=128, hidden=512):
+    def __init__(self, in_dim, coarse_dim=128, hidden=512, layer_norm=False):
         super().__init__()
         self.coarse_dim = coarse_dim
         self.net = nn.Sequential(
@@ -69,6 +69,9 @@ class CoarseEncoder(nn.Module):
             nn.Linear(hidden, hidden), nn.GELU(),
             nn.Linear(hidden, coarse_dim),
         )
+        # LayerNorm bounds the coarse-state scale (fixes the s_std blow-up from
+        # distance regression); the separate distance head carries the magnitude.
+        self.ln = nn.LayerNorm(coarse_dim) if layer_norm else nn.Identity()
 
     @staticmethod
     def _pool(z):
@@ -77,7 +80,26 @@ class CoarseEncoder(nn.Module):
         return z.flatten(2).mean(dim=-1)
 
     def forward(self, z):
-        return self.net(self._pool(z))
+        return self.ln(self.net(self._pool(z)))
+
+
+class CoarseDistanceHead(nn.Module):
+    """MRN quasimetric on COARSE states: d(s_a, s_b) >= 0 with a guaranteed triangle
+    inequality (Liu et al., 2022):  d = ||f(a)-f(b)||_2 + max_i relu(g(b)_i - g(a)_i).
+
+    Decouples the metric from psi (psi stays a clean predictive abstraction; the head
+    carries the distance magnitude and extrapolates to far goals). s_a, s_b: [N, coarse_dim].
+    """
+
+    def __init__(self, coarse_dim, embed=128, asym=128, hidden=256):
+        super().__init__()
+        self.f = nn.Sequential(nn.Linear(coarse_dim, hidden), nn.GELU(), nn.Linear(hidden, embed))
+        self.g = nn.Sequential(nn.Linear(coarse_dim, hidden), nn.GELU(), nn.Linear(hidden, asym))
+
+    def forward(self, s_a, s_b):
+        sym = torch.linalg.norm(self.f(s_a) - self.f(s_b), dim=-1)
+        asym = torch.relu(self.g(s_b) - self.g(s_a)).amax(dim=-1)
+        return sym + asym
 
 
 class CoarsePredictor(nn.Module):
@@ -133,13 +155,20 @@ def coarse_jepa_loss(psi, p_high, s_targets, z_t, std_loss_fn, cov_loss_fn,
     return loss, pred_loss.detach(), reg.detach()
 
 
+def _to_goal(s, s_goal, dist_fn):
+    """Distance of each row of s to s_goal: learned quasimetric if given, else Euclidean."""
+    if dist_fn is None:
+        return torch.norm(s - s_goal, dim=-1)
+    return dist_fn(s, s_goal.expand(s.shape[0], -1))
+
+
 @torch.no_grad()
-def coarse_beam(p_high, s0, s_goal, horizon, width):
+def coarse_beam(p_high, s0, s_goal, horizon, width, dist_fn=None):
     """HIGH level: plan over macro-options in COARSE space with the coarse predictor.
 
     Roll P_high forward over option sequences to `horizon`, scoring each rolled coarse
-    state by Euclidean distance to s_goal; keep the best `width`. Returns the first
-    macro-option of the best plan and the coarse subgoal it predicts.
+    state by distance to s_goal (`dist_fn` = learned quasimetric, else Euclidean); keep
+    the best `width`. Returns the first macro-option and the coarse subgoal it predicts.
 
     s0, s_goal: [1, coarse_dim]. Returns (option_index:int, s_sg:[1, coarse_dim]).
     """
@@ -147,7 +176,7 @@ def coarse_beam(p_high, s0, s_goal, horizon, width):
     nopt = p_high.n_options
     s = torch.cat([p_high(s0, o) for o in range(nopt)], dim=0)      # [nopt, dc]
     first = torch.arange(nopt, device=device)
-    out_score = torch.norm(s - s_goal, dim=-1)                     # [nopt] best-so-far per first option
+    out_score = _to_goal(s, s_goal, dist_fn)                       # [nopt] best-so-far per first option
     keep = min(width, nopt)
     sel = torch.topk(-out_score, keep).indices
     beam_s, beam_first = s[sel], first[sel]
@@ -155,7 +184,7 @@ def coarse_beam(p_high, s0, s_goal, horizon, width):
         M = beam_s.shape[0]
         cand = torch.cat([p_high(beam_s, o) for o in range(nopt)], dim=0)   # [nopt*M, dc]
         first_rep = beam_first.repeat(nopt)                                  # matches dim-0 order
-        score = torch.norm(cand - s_goal, dim=-1)                           # [nopt*M]
+        score = _to_goal(cand, s_goal, dist_fn)                            # [nopt*M]
         out_score = out_score.scatter_reduce(0, first_rep, score, reduce="amin")
         keep = min(width, cand.shape[0])
         sel = torch.topk(-score, keep).indices
@@ -166,7 +195,7 @@ def coarse_beam(p_high, s0, s_goal, horizon, width):
 
 
 @torch.no_grad()
-def rank_fine_actions(jepa, psi, z_t, s_sg, cell_size, depth=1, width=4, block_eps=1e-3):
+def rank_fine_actions(jepa, psi, z_t, s_sg, cell_size, depth=1, width=4, block_eps=1e-3, dist_fn=None):
     """Rank the 4 first-cardinals by how close a `depth`-step WM DREAM gets (in coarse
     space) to the subgoal s_sg, best first. Two upgrades, both training-free:
 
@@ -183,7 +212,7 @@ def rank_fine_actions(jepa, psi, z_t, s_sg, cell_size, depth=1, width=4, block_e
     z1 = jepa.predictor(z_t.expand(4, -1, -1, -1, -1).contiguous(), a1)    # [4,D,1,1,1]
     moved = (z1 - z_t.expand_as(z1)).flatten(1).norm(dim=1) > block_eps
     first = torch.arange(4, device=device)
-    d1 = torch.where(moved, torch.norm(psi(z1) - s_sg, dim=-1),
+    d1 = torch.where(moved, _to_goal(psi(z1), s_sg, dist_fn),
                      torch.full((4,), INF, device=device))
     out = d1.clone()                                                       # best dist per first action
     if depth > 1:
@@ -197,7 +226,7 @@ def rank_fine_actions(jepa, psi, z_t, s_sg, cell_size, depth=1, width=4, block_e
             z_next = jepa.predictor(z_rep, a)
             mv = (z_next - z_rep).flatten(1).norm(dim=1) > block_eps
             first_rep = beam_first.repeat_interleave(4)
-            dd = torch.where(mv, torch.norm(psi(z_next) - s_sg, dim=-1),
+            dd = torch.where(mv, _to_goal(psi(z_next), s_sg, dist_fn),
                              torch.full((z_next.shape[0],), INF, device=device))
             out = out.scatter_reduce(0, first_rep, dd, reduce="amin")
             keep = min(width, z_next.shape[0])

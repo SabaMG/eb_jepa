@@ -21,7 +21,8 @@ from omegaconf import OmegaConf
 
 from eb_jepa.datasets.utils import create_env, init_data
 from eb_jepa.datasets.maze.maze_solver import solve_a_star
-from eb_jepa.hjepa import CoarseEncoder, CoarsePredictor, coarse_beam, rank_fine_actions
+from eb_jepa.hjepa import (CoarseEncoder, CoarseDistanceHead, CoarsePredictor,
+                           coarse_beam, rank_fine_actions)
 from eb_jepa.hierarchical import CARDINALS
 from eb_jepa.training_utils import load_checkpoint
 from eb_jepa.vis_utils import save_gif
@@ -48,10 +49,16 @@ def main():
     load_checkpoint(Path(fine_ckpt), jepa, optimizer=None, scheduler=None, device=device, strict=False)
     jepa.eval()
     ck = torch.load(coarse_pth, map_location=device, weights_only=False)
-    psi = CoarseEncoder(in_dim=ck["f"], coarse_dim=ck["coarse_dim"]).to(device)
+    psi = CoarseEncoder(in_dim=ck["f"], coarse_dim=ck["coarse_dim"],
+                        layer_norm=ck.get("layer_norm", False)).to(device)
     psi.load_state_dict(ck["psi"]); psi.eval()
     p_high = CoarsePredictor(coarse_dim=ck["coarse_dim"]).to(device)
     p_high.load_state_dict(ck["p_high"]); p_high.eval()
+    dist_fn = None
+    if "d_head" in ck:                                  # learned quasimetric (Upgrades 3+4)
+        d_head = CoarseDistanceHead(coarse_dim=ck["coarse_dim"]).to(device)
+        d_head.load_state_dict(ck["d_head"]); d_head.eval()
+        dist_fn = lambda sa, sb: d_head(sa, sb)
 
     env = create_env(cfg.data.env_name, config=env_config, n_allowed_steps=800,
                      max_step_norm=1.5, rng=np.random.default_rng(seed))
@@ -84,9 +91,10 @@ def main():
         for step in range(budget):
             z_t = enc(obs)
             if step % m == 0 or s_sg is None:
-                _o_star, s_sg = coarse_beam(p_high, psi(z_t), s_goal, Hc, beam_W)
+                _o_star, s_sg = coarse_beam(p_high, psi(z_t), s_goal, Hc, beam_W, dist_fn=dist_fn)
             cell = tuple(int(c) for c in env.agent_cell)
-            order = rank_fine_actions(jepa, psi, z_t, s_sg, cell_size, depth=low_depth, width=beam_W)
+            order = rank_fine_actions(jepa, psi, z_t, s_sg, cell_size, depth=low_depth,
+                                      width=beam_W, dist_fn=dist_fn)
             # try best-first, skipping blacklisted moves at this cell and the immediate U-turn
             cand = [d for d in order if d not in blocked.get(cell, set()) and d != last_rev]
             cand += [d for d in order if d not in cand]

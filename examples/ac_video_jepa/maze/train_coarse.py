@@ -22,7 +22,7 @@ from omegaconf import OmegaConf
 from torch.optim import AdamW
 
 from eb_jepa.datasets.utils import init_data
-from eb_jepa.hjepa import (CoarseEncoder, CoarsePredictor, N_OPTIONS,
+from eb_jepa.hjepa import (CoarseEncoder, CoarseDistanceHead, CoarsePredictor, N_OPTIONS,
                            coarse_jepa_loss, dream_macro_option, ema_update)
 from eb_jepa.losses import CovarianceLoss, HingeStdLoss
 from eb_jepa.training_utils import load_checkpoint
@@ -54,12 +54,14 @@ def main():
     for p in jepa.parameters():
         p.requires_grad_(False)
 
-    psi = CoarseEncoder(in_dim=f, coarse_dim=coarse_dim).to(device)
+    psi = CoarseEncoder(in_dim=f, coarse_dim=coarse_dim, layer_norm=True).to(device)
     psi_ema = copy.deepcopy(psi).to(device)
     for p in psi_ema.parameters():
         p.requires_grad_(False)
     p_high = CoarsePredictor(coarse_dim=coarse_dim, n_options=N_OPTIONS).to(device)
-    opt = AdamW(list(psi.parameters()) + list(p_high.parameters()), lr=1e-3, weight_decay=1e-5)
+    d_head = CoarseDistanceHead(coarse_dim=coarse_dim).to(device)   # quasimetric on coarse states
+    opt = AdamW(list(psi.parameters()) + list(p_high.parameters()) + list(d_head.parameters()),
+                lr=1e-3, weight_decay=1e-5)
     std_fn, cov_fn = HingeStdLoss(), CovarianceLoss()
     wandb.init(project="eb_jepa", name=f"hjepa-coarse-k{k}", group="hjepa",
                config={"f": f, "coarse_dim": coarse_dim, "k": k, "epochs": epochs,
@@ -86,7 +88,9 @@ def main():
             s_all = psi(z_all.permute(0, 2, 1, 3, 4).reshape(B * T, f, 1, 1, 1)).reshape(B, T, -1)  # [B,T,dc]
             ii = torch.randint(0, T, (n_pairs,), device=device)
             jj = torch.randint(0, T, (n_pairs,), device=device)
-            d_pred = torch.norm(s_all[:, ii] - s_all[:, jj], dim=-1)            # [B, n_pairs]
+            si = s_all[:, ii].reshape(B * n_pairs, -1)
+            sj = s_all[:, jj].reshape(B * n_pairs, -1)
+            d_pred = d_head(si, sj).reshape(B, n_pairs)                         # learned quasimetric
             d_tgt = (ii - jj).abs().float().unsqueeze(0).expand(B, -1)          # [B, n_pairs]
             dist_loss = F.smooth_l1_loss(d_pred, d_tgt)
             loss = loss_pr + dist_coeff * dist_loss
@@ -100,6 +104,7 @@ def main():
         print(f"[coarse] epoch {epoch} {time.time()-t0:.0f}s loss={tot/nb:.4f} "
               f"pred={tp/nb:.4f} reg={tr/nb:.4f} dist={td/nb:.4f} s_std={tss/nb:.4f}", flush=True)
         torch.save({"psi": psi.state_dict(), "p_high": p_high.state_dict(),
+                    "d_head": d_head.state_dict(), "layer_norm": True,
                     "coarse_dim": coarse_dim, "k": k, "f": f},
                    os.path.join(out_dir, "coarse.pth"))
 

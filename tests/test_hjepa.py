@@ -1,6 +1,7 @@
 import torch
 
 from eb_jepa.hjepa import (
+    CoarseDistanceHead,
     CoarseEncoder,
     CoarsePredictor,
     coarse_beam,
@@ -9,6 +10,30 @@ from eb_jepa.hjepa import (
     ema_update,
     pick_fine_action,
 )
+
+
+def test_coarse_distance_head_quasimetric():
+    torch.manual_seed(0)
+    d = CoarseDistanceHead(coarse_dim=16, embed=16, asym=16)
+    a, b, c = torch.randn(20, 16), torch.randn(20, 16), torch.randn(20, 16)
+    assert (d(a, b) >= 0).all()                                   # non-negative
+    assert torch.allclose(d(a, a), torch.zeros(20), atol=1e-5)    # identity = 0
+    assert (d(a, c) <= d(a, b) + d(b, c) + 1e-4).all()           # triangle inequality
+
+
+def test_coarse_encoder_layernorm_bounds_scale():
+    psi = CoarseEncoder(in_dim=32, coarse_dim=16, layer_norm=True)
+    s = psi(torch.randn(8, 32) * 50)        # large inputs
+    assert s.std().item() < 3.0             # LayerNorm keeps the coarse scale bounded
+
+
+def test_coarse_beam_accepts_dist_fn():
+    p = CoarsePredictor(coarse_dim=8, n_options=4)
+    s0, s_goal = torch.zeros(1, 8), torch.randn(1, 8)
+    dist_fn = lambda sa, sb: torch.norm(sa - sb, dim=-1)   # Euclidean via dist_fn == default
+    o1, _ = coarse_beam(p, s0, s_goal, horizon=2, width=4)
+    o2, _ = coarse_beam(p, s0, s_goal, horizon=2, width=4, dist_fn=dist_fn)
+    assert o1 == o2                                         # dist_fn=Euclidean matches default
 from eb_jepa.losses import CovarianceLoss, HingeStdLoss
 
 
