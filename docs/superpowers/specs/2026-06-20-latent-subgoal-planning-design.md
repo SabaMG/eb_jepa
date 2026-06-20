@@ -7,6 +7,11 @@
 maze hierarchy with subgoals that **emerge from the frozen world model's own energy**.
 No A\* anywhere in the decision loop (and none even as a *planner* at train time).
 
+**One-line framing:** this is **Quasimetric RL (QRL)** instantiated on a *frozen JEPA
+world model* — learn a quasimetric cost-to-go in the WM's latent space, then derive
+both the subgoal (high level) and the action (low level) by minimizing it. The WM is
+never retrained; all learning is one small quasimetric head.
+
 ---
 
 ## 1. Motivation — what's wrong with the current hierarchy
@@ -73,49 +78,77 @@ receding-horizon control with a learned terminal cost.
 - **The hierarchy is a knob, not automatic:** if `m=1` and `H=1` it collapses to flat
   greedy planning. We keep `H >> 1` and `m > 1` so it stays genuinely two-level.
 
-## 3. The one new learned component — a wall-aware latent distance `d(z_a, z_b)`
+## 3. The one new learned component — a wall-aware latent quasimetric `d(z_a, z_b)`
 
 Everything hinges on a distance that respects walls. This is the only new trained piece;
 the WM stays frozen (the organiser proved moving it erodes wall-awareness).
 
-- **Interface:** `LatentDistanceHead(z_a, z_b) -> R>=0`, mirroring `GoalValueHead`'s
-  pooled-latent interface (mean-pool `[B,C,T,1,1]` over spatial dims, concat, MLP).
-- **Meaning:** approximate number of low-level steps to get from `z_a` to `z_b` under the
-  frozen WM, *through the maze* (walls included).
-- **Self-supervised label (no A\* planner):** along any stored trajectory of states
-  `s_0..s_T`, encode to latents `z_0..z_T` with the frozen WM; for `i < j`, the temporal
-  gap `j - i` is a sample of the step-distance between `z_i` and `z_j`. Train
-  `d(z_i, z_j) ≈ j - i` (Huber regression). Because the maze trajectory data is generated
-  by A\* (shortest paths), `j - i` ≈ true shortest-path distance — but **A\* is only the
-  source of the training data, never a planner**, exactly the same "teacher at train"
-  contract the headline already relies on. (A fully A\*-free variant trains `d` on the
-  frozen WM's own random-action rollouts; noted as an option in §7.)
-- **Relation to existing code:** `d ≈ -log_gamma(V)` where `V` is the organiser's
-  `GoalValueHead`. We can either (a) train a fresh `LatentDistanceHead`, or (b) reuse
-  their value head and use `cost = 1 - V`. We default to (a) for a clean, general pairwise
-  `d`; (b) is a fast fallback.
+### 3.1 Architecture — **IQE quasimetric** (default), not a plain MLP
 
-### The make-or-break risk: long-range distance (saturation)
+A plain concat-MLP has **no metric guarantees**: nothing enforces the triangle
+inequality `d(a,c) ≤ d(a,b) + d(b,c)`, so it wobbles and — critically — **extrapolates
+badly to long range** (our make-or-break risk, §3.3). We therefore use a quasimetric
+architecture by default:
+
+- **Default: IQE (Interval Quasimetric Embedding)** — embed each latent into intervals,
+  `d(z_a, z_b) = sum of interval lengths`. SOTA for quasimetric goal-reaching
+  (Wang & Isola, 2022); guarantees the triangle inequality and is highly expressive.
+- **Fallback: MRN (Metric Residual Network)** — `d = symmetric_MLP + max_k(asymmetric_k)`;
+  simpler (~20 lines), same triangle-inequality guarantee. Use if IQE is fiddly.
+- **Debug baseline only: plain MLP** — concat pooled latents -> MLP -> softplus. Keep for
+  a 1-hour smoke test, but it is *not* the shipped head.
+
+All three share the same pooled-latent interface as `GoalValueHead`
+(`z` is `[B,C,T,1,1]`; mean-pool spatial dims -> `[B,C]`). Output is `d >= 0`.
+
+**Why this matters:** IQE/MRN is the single architecture change that de-risks the whole
+design — it turns the fragile long-range behaviour into the head's *built-in* property,
+and it gives the project its SOTA framing (QRL). See §10 for alternatives we rejected.
+
+### 3.2 Meaning and self-supervised loss
+
+- **Meaning:** approximate number of low-level steps to get from `z_a` to `z_b` under the
+  frozen WM, *through the maze* (walls included) — a learned cost-to-go.
+- **Loss — temporal-gap regression.** Encode a trajectory `z_0..z_T` with the frozen WM.
+  For a sampled pair `i < j`, the steps between them along the path is exactly `j - i`:
+
+  ```
+  L_reg = E_{(i,j), i<j} [ Huber( d(z_i, z_j) - (j - i) ) ]
+  ```
+
+  Huber (not MSE) so rare long pairs don't dominate. Optionally symmetrize
+  (`d(z_j, z_i)` also -> `j - i`, maze is undirected) and add a few cross-trajectory pairs
+  as large-distance negatives so distances don't collapse globally.
+- **Why the labels are *exact*, not noisy:** a sub-path of a shortest (A\*) path is itself
+  shortest between its endpoints, so within one A\* trajectory `j - i` **is** the true
+  shortest-path step-distance. **A\* is only the label oracle in the data, never a planner**
+  — the same "teacher at train, none at eval" contract the headline already relies on.
+  (A fully A\*-free variant uses the frozen WM's own random-action rollouts and a
+  contrastive/temporal loss instead of regression; noted in §7 and §10.)
+- **Relation to existing code:** `d ≈ -log_gamma(V)` where `V` is the organiser's
+  `GoalValueHead`. Phase-0 shortcut: reuse their head, `cost = 1 - V`, zero new training,
+  just to validate the loop in ~1h before training a fresh IQE head.
+
+### 3.3 The make-or-break risk: long-range distance (saturation)
 
 The flat planner gave 0% because its value **saturated** over long mazes (no gradient).
-A learned `d` will have the *same* failure if it only resolves short ranges. The base WM
-trains on windows of length 49, but mazes need ~120 steps.
+A learned `d` dies the same way if it only resolves short ranges. The base WM trains on
+windows of length 49, but mazes need ~120 steps.
 
 **Mitigations (must do, not optional):**
-- Train `d` on **full-length A\* trajectories** (encode the whole path, labels up to
-  ~120), not the 49-clipped training windows.
-- Use a **quasimetric architecture** (MRN or IQE) so `d` respects the triangle inequality
-  and extrapolates monotonically, instead of a plain MLP. (MVP can start with an MLP and
-  upgrade if long-range monotonicity fails validation.)
+- **IQE/MRN head** (§3.1) — triangle inequality makes the metric extrapolate monotonically
+  to far pairs never seen together; this is the main defence.
+- **Train on full-length A\* trajectories** — set the loader `sample_length` to the full
+  path (`n_steps`) so sampled pairs span the whole 0–120 range, not the 49-clipped window.
 - **Validate before trusting:** on held-out mazes, `d(z_t, z_goal)` must decrease
-  monotonically along the A\* path (§8). If it doesn't, the planner can't work — fix `d`
-  first.
+  monotonically along the A\* path (§8). **This is a hard gate** — if it fails, stop and
+  fix `d` before building the planner.
 
 ## 4. Components (isolated units)
 
 | unit | file | what it does | depends on |
 |---|---|---|---|
-| `LatentDistanceHead` | `eb_jepa/state_decoder.py` (next to `GoalValueHead`) | `d(z_a, z_b) -> R>=0`; pooled-latent MLP/quasimetric | torch only |
+| `LatentDistanceHead` | `eb_jepa/state_decoder.py` (next to `GoalValueHead`) | `d(z_a, z_b) -> R>=0`; pooled-latent **IQE** quasimetric (MRN fallback, MLP debug-only) | torch only |
 | `train_distance.py` | `examples/ac_video_jepa/maze/` | self-supervised training of `d` on the **frozen** WM | frozen WM ckpt, maze data |
 | `latent_subgoal_step()` | `eb_jepa/hierarchical.py` | given frozen WM + `d` + `z_t` + `z_goal` + state, return next action and current `z_sg` | WM, `d` |
 | `eval_latent_subgoal.py` | `examples/ac_video_jepa/maze/` | A\*-free closed-loop eval harness (budget, SPL, GIFs) calling the planner | env, WM, `d` |
@@ -153,8 +186,10 @@ score and are removed.
 
 **Replace:**
 - `SubgoalPredictor` (A\* cloning) -> energy-minimization subgoal selection (§2).
-- `fine_kstep_target` constant-action lookahead -> beam rollout that varies actions (§5),
-  scored by learned `d` not probe-Euclidean.
+- `fine_kstep_target` constant-action (`LLLL`/`RRRR`) lookahead -> beam rollout that varies
+  actions (§5), scored by learned `d` not probe-Euclidean. (We keep the **beam search** —
+  with discrete 4-cardinal actions an exact tree beats sampling planners like MPPI; `d`
+  just turns it into a proper heuristic search. See §10 for why not MPPI / amortized policy.)
 
 **Delete from the decision loop:**
 - probe-Euclidean scoring, blocked-skip, revisit penalty, no-U-turn (all obsolete once
@@ -165,14 +200,24 @@ against — we do not break the 66% path.
 
 ## 7. Training plan
 
-1. **Train `d` (head only, WM frozen).** `train_distance.py`: stream maze episodes, encode
-   full A\*-path states with the frozen WM, sample `(i, j)` pairs, regress `d -> j - i`
-   (Huber). Add a few cross-trajectory far pairs as large-distance negatives. Fast (one
-   small head, frozen encoder). Output: `distance.pth`.
-   - *A\*-free option:* replace A\*-path data with frozen-WM random-action rollouts; labels
-     are rollout step gaps. More honest "no A\* even in data", but sparser coverage —
-     evaluate if time permits.
-2. **No WM retraining.** Use the existing `aux/latest.pth.tar`.
+1. **Train `d` (IQE head only, WM frozen).** `train_distance.py`:
+   ```python
+   WM = build_fine(...); load aux/latest.pth.tar; WM.eval(); requires_grad_(False)
+   d_head = IQEDistanceHead(dim=512); opt = AdamW(d_head.parameters(), 1e-3)
+   for batch in maze_loader:                  # states:[B,C,T,H,W]; full A* paths
+       with torch.no_grad():
+           z = WM.encode(states)              # [B,512,T,1,1]  (frozen, no grad)
+       i, j = sample_pairs(T, per_traj=K)     # i<j, vectorized
+       loss = huber(d_head(z[...,i], z[...,j]) - (j - i).float())
+       loss.backward(); opt.step(); opt.zero_grad()
+   ```
+   Cheap: encoder frozen under `no_grad`, only a small head trains (minutes). Output:
+   `distance.pth`. **Loader change:** `sample_length = n_steps` (full path), so pairs span
+   the full 0–120 range (§3.3).
+   - *A\*-free-data option:* replace A\*-path data with frozen-WM random-action rollouts +
+     a contrastive/temporal loss (no exact integer labels). More honest "no A\* even in
+     data", sparser coverage — evaluate if time permits (§10).
+2. **No WM retraining.** Use the existing `aux/latest.pth.tar`. The WM is off-limits.
 3. **Eval** via `eval_latent_subgoal.py` (seeded, 200 mazes — see §8).
 
 ## 8. Evaluation & ablations
@@ -198,20 +243,30 @@ plumbed into `MazeEnv(rng=np.random.default_rng(seed))`.
 - **Phase 1 — MVP planner.** Committed-subgoal version: high level beam-to-`H` + argmin
   `d`; low level greedy 1-step descent; re-plan every `m`. Genuinely two-level. Ship and
   measure.
-- **Phase 2 — polish.** Quasimetric head if long-range monotonicity is weak; tune
-  `H, m, W`; optional reuse of `GoalValueHead`.
+- **Phase 2 — polish.** Tune `H, m, W`; swap IQE->MRN if IQE is fiddly; optional
+  amortized low-level policy `pi(a|z_t,z_sg)` distilled from the search for speed.
 - **Future (out of scope):** strict H-JEPA — a learned coarse encoder `psi(z)` and
   distance in coarse latent space for a true multi-abstraction hierarchy.
 
-## 10. Open questions
+## 10. Rejected alternatives (and why) + open questions
 
-1. **Quasimetric vs MLP for `d`** — start MLP, upgrade to MRN/IQE only if the §8
-   monotonicity gate is weak? (Default: yes, start simple.)
-2. **`z_sg` from WM rollout vs from a fresh encode** — the subgoal latent comes from the
-   WM's own prediction, so it lives on the WM's predicted manifold (consistent with the
-   low level, which also rolls the WM). Confirm this is stable over `m` steps.
-3. **Reachability = distance budget vs uncertainty** — we operationalize the "predictive
-   horizon" as `depth <= H` (a reach budget). A truer #1 uses WM-ensemble disagreement as
-   the horizon. Budget is the MVP; ensemble is a stretch goal.
-4. **Reuse organiser's `GoalValueHead`** as `d = 1 - V` to save training a head — worth a
-   quick try in Phase 0 before committing to a fresh head?
+**Architecture choices we deliberately did *not* take** (so we don't relitigate them):
+
+| Component | Considered | Decision |
+|---|---|---|
+| Distance head | plain MLP | **Rejected as the shipped head.** No triangle inequality -> bad long-range extrapolation = our top risk. MLP kept only as a 1-hour debug baseline; **IQE** ships (MRN fallback). |
+| World model | retrain bigger / different encoder | **Rejected.** Frozen and precious — co-training already proved moving it erodes wall-awareness. All architecture freedom is in the new head + planner. |
+| Low-level search | MPPI / CEM (sampling planners) | **Rejected.** Actions are 4 *discrete* cardinals; an exact beam/tree dominates samplers (MPPI shines with continuous actions). Keep beam, now scored by `d`. |
+| Low-level control | amortized policy `pi(a|z_t,z_sg)` | **Deferred.** Faster at inference but needs extra training; search with `d` needs none. Phase-2 speed upgrade only. |
+| `d` loss | contrastive / InfoNCE / C-learning | **Deferred.** Regression on A\*-subpath gaps gives *exact* integer labels; contrastive is the path for fully A\*-free *data* — only if we drop A\*-generated trajectories. |
+| Reachability test | WM-ensemble uncertainty as the horizon | **Deferred.** We operationalize "predictive horizon" as a reach budget `depth <= H` (no ensemble needed). Ensemble-uncertainty horizon is a stretch goal. |
+| Goal representation | `xy` + probe | **Rejected.** Use the latent `z_goal = E(target_obs)` — more JEPA, and `d` needs a latent anyway. |
+
+**Open questions for the team:**
+1. **IQE vs MRN** — default IQE (more expressive); fall back to MRN only if IQE training
+   is unstable. OK?
+2. **`z_sg` from WM rollout vs fresh encode** — the subgoal latent comes from the WM's own
+   prediction, so it lives on the WM's predicted manifold (consistent with the low level,
+   which also rolls the WM). Confirm it's stable when held for `m` steps.
+3. **Phase-0 shortcut** — try `d = 1 - V` with the organiser's *existing* `GoalValueHead`
+   first (zero training, ~1h) to validate the loop before training a fresh IQE head?
