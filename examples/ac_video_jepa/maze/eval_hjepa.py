@@ -165,11 +165,10 @@ def main():
             z4 = jepa.predictor(z_t.expand(4, -1, -1, -1, -1).contiguous(), a4)
             degree = int(((z4 - z_t.expand_as(z4)).flatten(1).norm(dim=1) > 1e-3).sum())
             at_junction = (degree >= 3) and (hold >= MIN_COMMIT)   # branch point, after committing
-            # COMMIT to a subgoal until REACHED or a committed JUNCTION (re-decide branch) -> stable
+            # EXPERIMENT (v2 last try): recompute the dream-subgoal EVERY step. Hypothesis: a too-
+            # sticky subgoal lets the agent loop; a fresh receding-horizon target each step avoids it.
             if sg_horizon > 0:
-                d_to_sg = 1e9 if s_sg is None else float(
-                    (dist_fn(s_t, s_sg) if dist_fn else torch.norm(s_t - s_sg, dim=-1))[0])
-                replan = (s_sg is None) or (d_to_sg < reach_eps) or at_junction or (hold >= max_hold)
+                replan = True
             else:
                 replan = (step % m == 0) or (s_sg is None)
             if replan:
