@@ -23,11 +23,13 @@
   subgoals, constant-cardinal lookahead, as-the-crow-flies scoring).
 - We designed and built a **strict 2-level Hierarchical JEPA** — two learned abstractions,
   a coarse world model trained by **WM "dreams,"** replacing A\* with a *learned* router.
-- **Status: the architecture trains cleanly and does not collapse, but does not yet
-  navigate** (0 % on the first runs). We traced the cause to **distance saturation at the
-  coarse level** and are fixing it (full-length trajectories + explicit distance metric).
-  The honest framing: *a more principled, genuinely 2-level H-JEPA; the learned router is
-  the hard open part.*
+- **Status: the 2-level H-JEPA works — 0 % → 55 % success** (11/20 mazes, SPL 0.279). The
+  path there: trains without collapse → fixed coarse-distance **saturation** (full-length
+  trajectories + explicit metric) → then the **GIF revealed a *frozen agent*** (a memoryless
+  greedy low level deadlocked on walls) → **execution-feedback blocked-skip** unfroze it →
+  55 %. Remaining: tighten paths (low SPL) and run the seeded **200-maze** figure. The honest
+  framing: *a genuinely 2-level H-JEPA whose learned coarse router replaces A\* and already
+  navigates a majority of mazes; efficiency + a solid large-N number are the open items.*
 
 All on the **full 21×21 maze** (img 63×63) — same size as the baseline, apples-to-apples.
 
@@ -220,8 +222,42 @@ gave the organiser's *flat* planner 0 %** ("the value saturates over a 50-cell m
 - **Direct distance regression** `‖ψ(z_i) − ψ(z_j)‖ → |i−j|` over the full range.
 - **`coarse_dim` 128 → 32** for a cleaner Euclidean metric.
 
-Early signal: the distance loss is **actually falling now** (18.6 → 6.1 vs the ranking that
-barely moved), `s_std` healthy — genuine reason to expect > 0. **Result pending.**
+Early signal: the distance loss **fell** (18.6 → 5.3 vs the ranking that barely moved),
+diagnostic monotonicity rose **0.68 → 0.76**. But the coarse-beam direction match **dropped
+to 0.32** and `s_std` ballooned to ~4.6 — the distance term and the predictive term fight
+over ψ. Eval still **0 %**.
+
+### The real blocker, found by VISUALIZING — and the breakthrough
+
+We added GIF dumps (like the baseline's `eval_subgoal`) and ran eval on the trained
+`coarse.pth`. The GIFs showed the **agent never moves — it sits on the same cell for the
+entire 219–459-step budget.** Root cause: the low level (`pick_fine_action`) was a
+**memoryless greedy argmin**. The fine WM predicts "stay" into a wall, so if the best-scoring
+direction is a wall and "staying" is "closest" to the subgoal, the agent **re-picks the same
+blocked move every step → deadlock.** The 0 % was a *frozen* agent, not a wandering one — it
+never even got to test whether the coarse routing works.
+
+**Fix (no retrain):** `rank_fine_actions` (rank all 4 cardinals by coarse distance) +
+**execution-feedback blocked-skip** (try best-first; if the agent didn't move, blacklist that
+move at this cell and try the next; no immediate U-turn) — the same mechanism the organiser's
+*working* reacher uses, but driven by **coarse-latent** distance instead of probe position.
+
+**Result: 0 % → 55 % success** (11/20 mazes, SPL 0.279, same `coarse.pth`, just unfrozen).
+The 2-level H-JEPA **works** — the learned coarse router reaches the goal a majority of the
+time. SPL 0.279 is low (inefficient, lots of backtracking) → next: tighten paths (better
+metric, larger beam) and run the seeded **200-maze** number for a solid figure.
+
+> **Discovered purely from the GIF — visualization > guessing.** Lesson for the talk.
+
+### Is it still H-JEPA with this fix? Yes.
+The *decision* (which direction) stays fully latent: cardinals ranked by
+`‖ψ(predictor(z,a)) − s_sg‖` over imagined 1-step WM predictions, toward a coarse-JEPA
+subgoal — two learned abstractions, energy in latent space, no pixels, no A\*. The
+blocked-skip is a **reactive control wrapper** ("did I move?"), not a planner, and it is
+explicitly fair within the *A\*-free* protocol (the baseline uses the same rule). **More-JEPA
+variant (noted for the slides):** detect blocked moves from the **WM's own prediction**
+(`‖predictor(z,a) − z‖ ≈ 0`) *in imagination*, so wall-avoidance comes from the model and the
+agent never bumps — the purest form (~5 lines).
 
 ---
 
