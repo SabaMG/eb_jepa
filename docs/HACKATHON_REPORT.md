@@ -1,7 +1,7 @@
 # Hackathon Report — A\*-free maze navigation with a 2-level H-JEPA
 
 **Team:** vivatech-equipe7 (Tristan, Lu) · **Date:** 2026-06-20
-**Repo:** `SabaMG/eb_jepa` (fork of `facebookresearch/eb_jepa`)
+**Repo:** `SabaMG/eb_jepa` (our fork of the **official hackathon repo**, itself a fork of `facebookresearch/eb_jepa`)
 **Cluster:** Dalia (IDRIS), GB200 GPUs · all runs logged to W&B (`tristan-faure-epita/eb_jepa`, group `hjepa`)
 
 > This document is the working log + reflection for the presentation. It records what
@@ -14,9 +14,11 @@
 
 - **The given baseline (organiser's) didn't actually run end-to-end** in the streaming
   config — we found and fixed **4 real bugs** before any A\*-free number could be reproduced.
-- **The "~66 %" baseline is the team's own earlier number, not an external benchmark.**
-  The eval is **unseeded over only 32 mazes** (±13 % CI): the *same* model scored **81 %
-  then 90 %** on two seeds. So single-number comparisons are noise-dominated.
+- **The "~66 %" baseline is the *organiser's* number** (in their `README_hierarchical.md`),
+  **not an external benchmark and not ours.** The eval is **unseeded over only 32 mazes**
+  (±13 % CI): the *same* model scored **81 % then 90 %** on two seeds — so single-number
+  comparisons are noise-dominated. (What was *ours* here: the bug fixes + orchestration that
+  made it run, not the algorithm — see §3.)
 - We critiqued the given design and identified its **least-JEPA parts** (A\*-cloned
   subgoals, constant-cardinal lookahead, as-the-crow-flies scoring).
 - We designed and built a **strict 2-level Hierarchical JEPA** — two learned abstractions,
