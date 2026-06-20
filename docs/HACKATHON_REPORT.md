@@ -1,6 +1,6 @@
 # Hackathon Report — A\*-free maze navigation with a 2-level H-JEPA
 
-**Team:** vivatech-equipe7 (Tristan, Saba, Trick5t3r) · **Date:** 2026-06-20
+**Team:** vivatech-equipe7 (Tristan, Lu) · **Date:** 2026-06-20
 **Repo:** `SabaMG/eb_jepa` (fork of `facebookresearch/eb_jepa`)
 **Cluster:** Dalia (IDRIS), GB200 GPUs · all runs logged to W&B (`tristan-faure-epita/eb_jepa`, group `hjepa`)
 
@@ -33,8 +33,15 @@ All on the **full 21×21 maze** (img 63×63) — same size as the baseline, appl
 
 ## 1. What we were given (the organiser's code)
 
+**Attribution (important for the talk).** We **forked the official hackathon repo** (itself a
+fork of `facebookresearch/eb_jepa`). **Everything in the baseline — the maze env, the fine
+WM, `hierarchical.py`, `SubgoalPredictor`, the greedy reacher, the training configs — is
+organiser code** (git authors: Trick5t3r, Amir Bar, Basile Terver, Koustuv Sinha, …).
+**Only changes on our fork (`SabaMG`) count as ours** — i.e. Tristan/the team's commits since
+19 June ~19:30. Trick5t3r and the others are **not** on our team.
+
 Upstream `facebookresearch/eb_jepa` is a **flat** JEPA world model + MPPI planner on a
-`two_rooms` env. **No maze, no hierarchy.** The organiser added, on top:
+`two_rooms` env. **No maze, no hierarchy.** The official hackathon repo added, on top:
 
 | Component | What it is |
 |---|---|
@@ -85,10 +92,23 @@ Same model, same command — a **9-point swing from 3 mazes**. Root cause: **the
 unseeded** (`np.random.default_rng()` with no seed; `seed:1` in the config is training-only)
 and uses only **32 mazes** (≈ ±13 % 95 % CI).
 
-**Key reframe:** the "66 %" is the *team's own earlier run* (written into
+**Key reframe:** the "66 %" is the **organiser's** earlier run (written into
 `README_hierarchical.md`), **not an external benchmark**. So our 81–90 % vs their 66 % is a
-**self-comparison across training seeds + a noisy eval** — nothing was "wrong." 
+**re-run of *their* algorithm across training seeds + a noisy eval** — nothing was "wrong."
 **Methodology fix we adopted:** seed the env + evaluate on **200 mazes** for every number.
+
+**What was actually *ours* in this reproduction.** The algorithm (greedy K-step reacher +
+A\*-cloned `SubgoalPredictor`) and the configs are **organiser code, unchanged**. Our
+contribution that produced the number was: **(a) the 4 bug fixes** (without them the pipeline
+crashes — see §2), and **(b) the sbatch orchestration** (`recreate_baseline_full.sh`,
+`rerun_sg_eval.sh`). So the 81–90 % is *their algorithm, made runnable + reproducible by us*,
+**not an algorithmic improvement of ours.** (Our one real algorithmic addition at this stage,
+the **beam-search reacher** `fine_beam_dist`, lives in a *separate* eval and was **not** in
+the 81–90 % numbers — TODO: run beam-vs-greedy on 200 seeded mazes to quantify it.)
+
+> ⚠️ **To confirm before the talk:** Tristan/Lu, was any *algorithmic* tweak folded into the
+> 81–90 % reproduction beyond the bug fixes + scripts? Git shows the organiser algorithm
+> unchanged, but flag anything local/uncommitted so we attribute it correctly.
 
 ---
 
