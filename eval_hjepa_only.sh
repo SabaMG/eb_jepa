@@ -22,6 +22,6 @@ if [ ! -f "$ROOT/aux/latest.pth.tar" ] && [ -f "$ALT/aux/latest.pth.tar" ]; then
 EVAL="$ROOT/eval_hjepa_gif"; mkdir -p "$EVAL"
 # <fine> <coarse_pth> <out_dir> num_ep Hc m beam_W budget_factor margin seed n_gifs
 uv run --project "$REPO" python -m examples.ac_video_jepa.maze.eval_hjepa \
-    "$ROOT/aux/latest.pth.tar" "$ROOT/coarse/coarse.pth" "$EVAL" 200 4 3 4 4 10 0 6
+    "$ROOT/aux/latest.pth.tar" "$ROOT/coarse/coarse.pth" "$EVAL" 200 4 3 4 4 10 0 8
 echo "=== GIFs in $EVAL/ep*_*.gif ==="
 ls -la "$EVAL"/*.gif 2>/dev/null || echo "(no gifs)"
