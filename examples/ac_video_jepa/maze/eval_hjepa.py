@@ -150,23 +150,22 @@ def main():
         cur_sg_xy = None
         s_sg = None; moves = 0; done = False
         blocked = {}; last_rev = -1
-        visited = {}; last_cell = None      # low-level visit memory + junction-arrival guard
-        REVISIT_W = 1.0                      # revisit penalty weight
+        visited = {}                         # low-level visit memory
+        REVISIT_W = 1.0; MIN_COMMIT = 4      # revisit penalty; min hold before a junction replan
         hold = 0; reach_eps = 2.0; max_hold = max(4, 2 * sg_horizon)   # subgoal commitment
         OPP = {0: 1, 1: 0, 2: 3, 3: 2}    # opposite cardinal (no immediate U-turn)
         for step in range(budget):
             cell = tuple(int(c) for c in env.agent_cell)
             z_t = enc(obs)
             s_t = psi(z_t)
-            # INTERSECTION degree via the fine WM (A*-free): how many cardinals' 1-step dream
-            # actually moves. >=3 = a real branch point -> the ONLY place a fresh subgoal helps
-            # (corridors have no choice to make). No noisy "stuck" proxy: a crisp geometric event.
+            # INTERSECTION degree via the fine WM (A*-free): # cardinals whose 1-step dream moves.
+            # >=3 = a real branch point. We COMMIT to the subgoal in corridors and only re-decide
+            # at a junction once it's been held >= MIN_COMMIT steps -> no teleporting in open areas.
             a4 = (CARDINALS.to(z_t.device) * cell_size).unsqueeze(-1)
             z4 = jepa.predictor(z_t.expand(4, -1, -1, -1, -1).contiguous(), a4)
             degree = int(((z4 - z_t.expand_as(z4)).flatten(1).norm(dim=1) > 1e-3).sum())
-            at_junction = (degree >= 3) and (cell != last_cell)   # branch point, fresh arrival
-            last_cell = cell
-            # COMMIT to a subgoal until REACHED or a JUNCTION (re-decide the branch) -> stable
+            at_junction = (degree >= 3) and (hold >= MIN_COMMIT)   # branch point, after committing
+            # COMMIT to a subgoal until REACHED or a committed JUNCTION (re-decide branch) -> stable
             if sg_horizon > 0:
                 d_to_sg = 1e9 if s_sg is None else float(
                     (dist_fn(s_t, s_sg) if dist_fn else torch.norm(s_t - s_sg, dim=-1))[0])
