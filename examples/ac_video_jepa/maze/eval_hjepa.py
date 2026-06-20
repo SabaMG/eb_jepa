@@ -124,12 +124,17 @@ def main():
         for step in range(budget):
             z_t = enc(obs)
             if step % m == 0 or s_sg is None:
-                _o_star, s_sg = coarse_beam(p_high, psi(z_t), s_goal, Hc, beam_W, dist_fn=dist_fn)
-                if is_gif:
-                    try:
-                        cur_sg_mask = subgoal_dot(z_t, _o_star)
-                    except Exception:
-                        cur_sg_mask = None
+                if Hc == 0:
+                    # DIRECT-METRIC mode: skip the (broken) macro-option beam, descend the
+                    # learned quasimetric straight toward the goal. Tests the metric alone.
+                    s_sg = s_goal
+                else:
+                    _o_star, s_sg = coarse_beam(p_high, psi(z_t), s_goal, Hc, beam_W, dist_fn=dist_fn)
+                    if is_gif:
+                        try:
+                            cur_sg_mask = subgoal_dot(z_t, _o_star)
+                        except Exception:
+                            cur_sg_mask = None
             cell = tuple(int(c) for c in env.agent_cell)
             order = rank_fine_actions(jepa, psi, z_t, s_sg, cell_size, depth=low_depth,
                                       width=beam_W, dist_fn=dist_fn)
