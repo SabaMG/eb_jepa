@@ -71,6 +71,9 @@ def main():
 
     dist_coeff = 0.1     # temporal-distance regression: ||psi(z_i)-psi(z_j)|| -> |i-j| (steps)
     n_pairs = 256
+    # Cross-trajectory hard negatives: OFF by default (the WINNING coarse.pth was trained without
+    # them). We A/B'd them and they REGRESSED nav (75.5% vs 85.5%); kept reproducible behind a flag.
+    neg_coeff = 0.25 if os.environ.get("EBJEPA_CROSS_NEG") == "1" else 0.0
     for epoch in range(epochs):
         t0 = time.time(); tot = tp = tr = td = tss = 0.0; nb = 0
         for x, a, loc, _, _ in loader:
@@ -96,7 +99,7 @@ def main():
             # so a state from another maze is unreachable -> its quasimetric distance must be large
             # (>= T). This is the missing REPULSIVE signal: without it the metric only learns the
             # within-path temporal order and lets walled-off/far regions read as "near the goal".
-            if B > 1:
+            if neg_coeff > 0 and B > 1:
                 perm = torch.roll(torch.arange(B, device=device), 1)            # b -> another maze
                 kk = torch.randint(0, T, (n_pairs,), device=device)
                 sn = s_all[perm][:, kk].reshape(B * n_pairs, -1)
@@ -104,7 +107,7 @@ def main():
                 neg_loss = F.relu(float(T) - d_neg).mean()                      # hinge: push d >= T
             else:
                 neg_loss = d_pred.new_zeros(())
-            dist_loss = F.smooth_l1_loss(d_pred, d_tgt) + 0.25 * neg_loss
+            dist_loss = F.smooth_l1_loss(d_pred, d_tgt) + neg_coeff * neg_loss
             loss = loss_pr + dist_coeff * dist_loss
             opt.zero_grad(); loss.backward(); opt.step()
             ema_update(psi_ema, psi, tau=0.99)
