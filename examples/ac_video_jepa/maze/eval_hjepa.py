@@ -29,29 +29,41 @@ from eb_jepa.training_utils import load_checkpoint
 from examples.ac_video_jepa.maze.maze_fine_wm import build_fine
 
 
-def _rgb_annot(obs, goal_mask, sg_mask):
-    """Render a frame in the original maze style (green walls, red agent) + goal (yellow)
-    + subgoal (cyan). obs: [C,H,W] (dot, wall). goal_mask/sg_mask: [H,W] env-rendered dots."""
+def _maze_rgb(obs):
+    """Maze background in the original style (green walls, black paths). obs: [C,H,W]."""
     a = obs.detach().cpu().numpy()
-    H, W = a.shape[-2], a.shape[-1]
-    img = np.zeros((H, W, 3), np.uint8)
-    img[a[1] > 0.1] = (0, 200, 0)                      # walls green (as the original gifs)
-    if goal_mask is not None:
-        img[goal_mask > 0.2] = (255, 230, 0)           # goal yellow
-    if sg_mask is not None:
-        img[sg_mask > 0.2] = (0, 230, 230)             # subgoal cyan
-    img[a[0] > 0.3] = (235, 30, 30)                    # agent red (drawn on top)
+    img = np.zeros((a.shape[-2], a.shape[-1], 3), np.uint8)
+    img[a[1] > 0.1] = (0, 200, 0)
     return img
 
 
-def _save_annot_gif(rgb_frames, path, fps=8, scale=6):
-    """Save the annotated frames as a GIF, upscaled, with a frame counter (old-gif style)."""
+def _centroid(mask):
+    """(x, y) centre of a [H,W] dot mask, or None if empty."""
+    if mask is None:
+        return None
+    ys, xs = np.where(mask > 0.2)
+    if len(xs) == 0:
+        return None
+    return float(xs.mean()), float(ys.mean())
+
+
+def _save_annot_gif(frames, path, fps=8, scale=6, r=3):
+    """frames = list of (maze_rgb, agent_xy, goal_xy, sg_xy). Upscale, draw small markers
+    (goal yellow, subgoal cyan RING, agent red) + a frame counter — old-gif look."""
     from PIL import Image, ImageDraw
-    n = len(rgb_frames)
+    n = len(frames)
     ims = []
-    for i, arr in enumerate(rgb_frames):
-        im = Image.fromarray(arr).resize((arr.shape[1] * scale, arr.shape[0] * scale), Image.NEAREST)
-        ImageDraw.Draw(im).text((3, 2), f"Frame {i + 1}/{n}", fill=(255, 255, 255))
+    for i, (rgb, ac, gc, sc) in enumerate(frames):
+        im = Image.fromarray(rgb).resize((rgb.shape[1] * scale, rgb.shape[0] * scale), Image.NEAREST)
+        d = ImageDraw.Draw(im)
+        if gc:
+            d.ellipse([gc[0] * scale - r, gc[1] * scale - r, gc[0] * scale + r, gc[1] * scale + r], fill=(255, 230, 0))
+        if sc:
+            d.ellipse([sc[0] * scale - r - 2, sc[1] * scale - r - 2, sc[0] * scale + r + 2, sc[1] * scale + r + 2],
+                      outline=(0, 235, 235), width=2)      # subgoal = cyan ring (visible anywhere)
+        if ac:
+            d.ellipse([ac[0] * scale - r, ac[1] * scale - r, ac[0] * scale + r, ac[1] * scale + r], fill=(235, 30, 30))
+        d.text((3, 2), f"Frame {i + 1}/{n}", fill=(255, 255, 255))
         ims.append(im)
     ims[0].save(path, save_all=True, append_images=ims[1:], duration=max(1, int(1000 / fps)), loop=0)
 
@@ -99,9 +111,12 @@ def main():
         xy_head.load_state_dict(info["xy_head_state_dict"])
     xy_head.eval()
 
+    img_sz = int(env_config.img_size)
+
     def pos_dot(z):
         """Decode a latent's probe position to an env-rendered dot mask (for the overlay)."""
         xy = norm.unnormalize_location(xy_head(z.float()).permute(0, 2, 1)[:, 0])[0]
+        xy = torch.clamp(xy, 0, img_sz - 1)          # dreamed latents can decode just off-maze
         return env._render_dot_at(xy)[0].detach().cpu().numpy()              # [H,W] dot mask
 
     def subgoal_dot(z_t, o_star):
@@ -130,9 +145,9 @@ def main():
         goal_img = info["target_obs"]
         frames = [obs]
         is_gif = ep < n_gifs
-        gif_rgb = []
-        goal_mask = goal_img[0].detach().cpu().numpy() if is_gif else None
-        cur_sg_mask = None
+        gif_frames = []
+        goal_c = _centroid(goal_img[0].detach().cpu().numpy()) if is_gif else None
+        cur_sg_xy = None
         s_sg = None; moves = 0; done = False
         blocked = {}; last_rev = -1
         OPP = {0: 1, 1: 0, 2: 3, 3: 2}    # opposite cardinal (no immediate U-turn)
@@ -145,22 +160,20 @@ def main():
                     s_sg, z_sg = dream_subgoal(jepa, psi, z_t, s_goal, sg_horizon, beam_W,
                                                max(2, sg_horizon // 2), cell_size, dist_fn=dist_fn)
                     if is_gif:
-                        try:
-                            cur_sg_mask = pos_dot(z_sg)
-                        except Exception:
-                            cur_sg_mask = None
+                        cur_sg_xy = _centroid(pos_dot(z_sg))
+                        agent_xy = _centroid(obs[0].detach().cpu().numpy())
+                        print(f"   [ep{ep} s{step}] subgoal@{None if cur_sg_xy is None else (round(cur_sg_xy[0]),round(cur_sg_xy[1]))} "
+                              f"agent@{None if agent_xy is None else (round(agent_xy[0]),round(agent_xy[1]))} "
+                              f"goal@{None if goal_c is None else (round(goal_c[0]),round(goal_c[1]))}", flush=True)
                 elif Hc == 0:
                     # DIRECT-METRIC: descend the quasimetric straight to the goal (no subgoal).
                     s_sg = s_goal
                     if is_gif:
-                        cur_sg_mask = goal_mask
+                        cur_sg_xy = goal_c
                 else:
                     _o_star, s_sg = coarse_beam(p_high, psi(z_t), s_goal, Hc, beam_W, dist_fn=dist_fn)
                     if is_gif:
-                        try:
-                            cur_sg_mask = subgoal_dot(z_t, _o_star)
-                        except Exception:
-                            cur_sg_mask = None
+                        cur_sg_xy = _centroid(subgoal_dot(z_t, _o_star))
             cell = tuple(int(c) for c in env.agent_cell)
             order = rank_fine_actions(jepa, psi, z_t, s_sg, cell_size, depth=low_depth,
                                       width=beam_W, dist_fn=dist_fn)
@@ -175,7 +188,8 @@ def main():
                 if not np.array_equal(env.agent_cell, prev):
                     moved = True; last_rev = OPP[d]; frames.append(obs)
                     if is_gif:
-                        gif_rgb.append(_rgb_annot(obs, goal_mask, cur_sg_mask))
+                        gif_frames.append((_maze_rgb(obs), _centroid(obs[0].detach().cpu().numpy()),
+                                           goal_c, cur_sg_xy))
                     break
                 blocked.setdefault(cell, set()).add(d)   # didn't move -> wall -> blacklist
                 if done or trunc:
@@ -192,8 +206,8 @@ def main():
             label = "succ" if done else "fail"
             # annotated GIF: goal (yellow) + current subgoal (cyan) on every frame
             try:
-                if len(gif_rgb) > 1:
-                    _save_annot_gif(gif_rgb, os.path.join(rdir, f"ep{ep}_{label}_annot.gif"), fps=8)
+                if len(gif_frames) > 1:
+                    _save_annot_gif(gif_frames, os.path.join(rdir, f"ep{ep}_{label}_annot.gif"), fps=8)
             except Exception as e:
                 print(f"[hjepa-eval] annot gif failed ep{ep}: {e}", flush=True)
         wandb.log({"eval/success": float(done), "eval/spl": spls[-1],
