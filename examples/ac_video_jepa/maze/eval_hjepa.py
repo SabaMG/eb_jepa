@@ -21,7 +21,7 @@ from omegaconf import OmegaConf
 
 from eb_jepa.datasets.utils import create_env, init_data
 from eb_jepa.datasets.maze.maze_solver import solve_a_star
-from eb_jepa.hjepa import CoarseEncoder, CoarsePredictor, coarse_beam, pick_fine_action
+from eb_jepa.hjepa import CoarseEncoder, CoarsePredictor, coarse_beam, rank_fine_actions
 from eb_jepa.hierarchical import CARDINALS
 from eb_jepa.training_utils import load_checkpoint
 from eb_jepa.vis_utils import save_gif
@@ -78,15 +78,30 @@ def main():
         goal_img = info["target_obs"]
         frames = [obs]
         s_sg = None; moves = 0; done = False
+        blocked = {}; last_rev = -1
+        OPP = {0: 1, 1: 0, 2: 3, 3: 2}    # opposite cardinal (no immediate U-turn)
         for step in range(budget):
             z_t = enc(obs)
             if step % m == 0 or s_sg is None:
                 _o_star, s_sg = coarse_beam(p_high, psi(z_t), s_goal, Hc, beam_W)
-            dir_idx = pick_fine_action(jepa, psi, z_t, s_sg, cell_size)
-            obs, _, done, trunc, info = env.step((CARDINALS[dir_idx] * cell_size).cpu().numpy())
-            moves += 1
-            frames.append(obs)
+            cell = tuple(int(c) for c in env.agent_cell)
+            order = rank_fine_actions(jepa, psi, z_t, s_sg, cell_size)
+            # try best-first, skipping blacklisted moves at this cell and the immediate U-turn
+            cand = [d for d in order if d not in blocked.get(cell, set()) and d != last_rev]
+            cand += [d for d in order if d not in cand]
+            moved = False
+            for d in cand:
+                prev = env.agent_cell.copy()
+                obs, _, done, trunc, info = env.step((CARDINALS[d] * cell_size).cpu().numpy())
+                moves += 1
+                if not np.array_equal(env.agent_cell, prev):
+                    moved = True; last_rev = OPP[d]; frames.append(obs); break
+                blocked.setdefault(cell, set()).add(d)   # didn't move -> wall -> blacklist
+                if done or trunc:
+                    break
             if done:
+                break
+            if not moved:        # fully boxed in (shouldn't happen) -> stop
                 break
         if done:
             successes += 1; spls.append(astar_len / max(moves, astar_len))

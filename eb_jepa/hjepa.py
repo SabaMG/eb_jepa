@@ -166,6 +166,20 @@ def coarse_beam(p_high, s0, s_goal, horizon, width):
 
 
 @torch.no_grad()
+def rank_fine_actions(jepa, psi, z_t, s_sg, cell_size):
+    """Rank the 4 cardinals by coarse-space distance of their 1-step fine prediction to
+    s_sg (best first). The eval loop consumes this with execution-feedback blocked-skip
+    (a blocked move makes the WM predict 'stay' -> no progress -> the agent tries the
+    next-best instead of deadlocking on a wall). Returns a list of dir indices 0..3."""
+    device = z_t.device
+    dirs = CARDINALS.to(device)
+    a = (dirs * cell_size).unsqueeze(-1)
+    z_next = jepa.predictor(z_t.expand(4, -1, -1, -1, -1).contiguous(), a)
+    d = torch.norm(psi(z_next) - s_sg, dim=-1)
+    return torch.argsort(d).tolist()
+
+
+@torch.no_grad()
 def pick_fine_action(jepa, psi, z_t, s_sg, cell_size):
     """LOW level: pick the cardinal whose 1-step fine prediction lands closest (in
     COARSE space) to the coarse subgoal s_sg. Energy descent in s-space via the fine WM.
