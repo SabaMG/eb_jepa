@@ -16,6 +16,7 @@ from pathlib import Path
 
 import numpy as np
 import torch
+import wandb
 from omegaconf import OmegaConf
 
 from eb_jepa.datasets.utils import create_env, init_data
@@ -54,9 +55,13 @@ def main():
     norm = env.normalizer
 
     def enc(o):
-        ot = norm.normalize_state(o.to(torch.float32, device=device)).unsqueeze(0).unsqueeze(2)
+        ot = norm.normalize_state(o.to(dtype=torch.float32, device=device)).unsqueeze(0).unsqueeze(2)
         return jepa.encode(ot)
 
+    wandb.init(project="eb_jepa", name=f"hjepa-eval-seed{seed}", group="hjepa",
+               config={"levels": 2, "num_ep": num_ep, "Hc": Hc, "m": m, "beam_W": beam_W,
+                       "budget_factor": budget_factor, "margin": margin, "seed": seed,
+                       "coarse_dim": ck["coarse_dim"], "k": ck["k"]})
     successes, spls = 0, []
     print(f"[hjepa-eval] Hc={Hc} m={m} W={beam_W} seed={seed} | 2-level | {num_ep} mazes", flush=True)
     for ep in range(num_ep):
@@ -82,14 +87,21 @@ def main():
             successes += 1; spls.append(astar_len / max(moves, astar_len))
         else:
             spls.append(0.0)
+        wandb.log({"eval/success": float(done), "eval/spl": spls[-1],
+                   "eval/astar_len": astar_len, "eval/moves": moves, "eval/ep": ep,
+                   "eval/running_success_rate": successes / (ep + 1)})
         print(f"[hjepa-eval] ep {ep}: {'SUCCESS' if done else 'fail'}", flush=True)
 
     sr = successes / num_ep
     spl = float(np.mean(spls))
+    wandb.run.summary["success_rate"] = sr
+    wandb.run.summary["spl"] = spl
+    wandb.log({"eval/success_rate": sr, "eval/spl_mean": spl})
     json.dump({"success_rate": sr, "spl": spl, "num_episodes": num_ep, "levels": 2,
                "Hc": Hc, "m": m, "beam_W": beam_W, "seed": seed, "astar_free": True},
               open(os.path.join(rdir, "hjepa_eval.json"), "w"), indent=2)
     print(f"[hjepa-eval] A*-FREE 2-level success={sr*100:.2f}%  SPL={spl:.3f}  over {num_ep} mazes (seed {seed})", flush=True)
+    wandb.finish()
 
 
 if __name__ == "__main__":

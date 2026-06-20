@@ -16,6 +16,7 @@ import time
 from pathlib import Path
 
 import torch
+import wandb
 from omegaconf import OmegaConf
 from torch.optim import AdamW
 
@@ -58,10 +59,14 @@ def main():
     p_high = CoarsePredictor(coarse_dim=coarse_dim, n_options=N_OPTIONS).to(device)
     opt = AdamW(list(psi.parameters()) + list(p_high.parameters()), lr=1e-3, weight_decay=1e-5)
     std_fn, cov_fn = HingeStdLoss(), CovarianceLoss()
+    wandb.init(project="eb_jepa", name=f"hjepa-coarse-k{k}", group="hjepa",
+               config={"f": f, "coarse_dim": coarse_dim, "k": k, "epochs": epochs,
+                       "lr": 1e-3, "n_options": N_OPTIONS, "ema_tau": 0.99,
+                       "std_coeff": 16.0, "cov_coeff": 8.0})
     print(f"[coarse] f={f} coarse_dim={coarse_dim} k={k} epochs={epochs} | strict 2-level H-JEPA", flush=True)
 
     for epoch in range(epochs):
-        t0 = time.time(); tot = tp = tr = 0.0; nb = 0
+        t0 = time.time(); tot = tp = tr = tss = 0.0; nb = 0
         for x, a, loc, _, _ in loader:
             x = x.to(device, non_blocking=True).float()
             t = x.shape[2] // 2                                 # a mid-trajectory start frame
@@ -74,9 +79,14 @@ def main():
             loss, pred, reg = coarse_jepa_loss(psi, p_high, s_targets, z0, std_fn, cov_fn)
             opt.zero_grad(); loss.backward(); opt.step()
             ema_update(psi_ema, psi, tau=0.99)
+            with torch.no_grad():
+                tss += psi(z0).std().item()                    # collapse monitor: spread of coarse states
             tot += loss.item(); tp += float(pred); tr += float(reg); nb += 1
-        print(f"[coarse] epoch {epoch} {time.time()-t0:.0f}s loss={tot/max(nb,1):.4f} "
-              f"pred={tp/max(nb,1):.4f} reg={tr/max(nb,1):.4f}", flush=True)
+        nb = max(nb, 1)
+        wandb.log({"coarse/loss": tot / nb, "coarse/pred": tp / nb, "coarse/reg": tr / nb,
+                   "coarse/s_std": tss / nb, "epoch": epoch})
+        print(f"[coarse] epoch {epoch} {time.time()-t0:.0f}s loss={tot/nb:.4f} "
+              f"pred={tp/nb:.4f} reg={tr/nb:.4f} s_std={tss/nb:.4f}", flush=True)
         torch.save({"psi": psi.state_dict(), "p_high": p_high.state_dict(),
                     "coarse_dim": coarse_dim, "k": k, "f": f},
                    os.path.join(out_dir, "coarse.pth"))
@@ -84,6 +94,7 @@ def main():
     if data_pipeline is not None:
         data_pipeline.shutdown()
     print(f"[coarse] DONE -> {out_dir}/coarse.pth", flush=True)
+    wandb.finish()
 
 
 if __name__ == "__main__":
