@@ -23,13 +23,15 @@
   subgoals, constant-cardinal lookahead, as-the-crow-flies scoring).
 - We designed and built a **strict 2-level Hierarchical JEPA** — two learned abstractions,
   a coarse world model trained by **WM "dreams,"** replacing A\* with a *learned* router.
-- **Status: the 2-level H-JEPA works — 0 % → 55 % success** (11/20 mazes, SPL 0.279). The
-  path there: trains without collapse → fixed coarse-distance **saturation** (full-length
-  trajectories + explicit metric) → then the **GIF revealed a *frozen agent*** (a memoryless
-  greedy low level deadlocked on walls) → **execution-feedback blocked-skip** unfroze it →
-  55 %. Remaining: tighten paths (low SPL) and run the seeded **200-maze** figure. The honest
-  framing: *a genuinely 2-level H-JEPA whose learned coarse router replaces A\* and already
-  navigates a majority of mazes; efficiency + a solid large-N number are the open items.*
+- **Status: the 2-level H-JEPA works — 0 % → 45 % success / SPL 0.23** on **200 seeded
+  mazes** (the 55 %/20-maze figure was small-sample noise; 45 % is the trustworthy number).
+  The path there: trains without collapse → fixed coarse-distance **saturation** (full-length
+  trajectories + explicit metric) → the **GIF revealed a *frozen agent*** (memoryless greedy
+  low level deadlocked on walls) → **blocked-skip**, then a **model-based, dreamer-scale wall
+  avoidance** (detect walls from the WM's own "stay" dream) unfroze it. The honest framing:
+  *a genuinely 2-level H-JEPA whose learned coarse router replaces A\*; it navigates ~half the
+  mazes A\*-free, but **inefficiently** (SPL 0.23 vs the A\*-routed baseline's 0.62) — success
+  reliability + path efficiency are the open items.*
 
 All on the **full 21×21 maze** (img 63×63) — same size as the baseline, apples-to-apples.
 
