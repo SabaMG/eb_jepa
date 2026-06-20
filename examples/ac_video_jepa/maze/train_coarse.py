@@ -65,28 +65,42 @@ def main():
                        "std_coeff": 16.0, "cov_coeff": 8.0})
     print(f"[coarse] f={f} coarse_dim={coarse_dim} k={k} epochs={epochs} | strict 2-level H-JEPA", flush=True)
 
+    rank_coeff = 1.0     # temporal-distance shaping: closer in time -> closer in coarse space
+    n_pairs = 128
     for epoch in range(epochs):
-        t0 = time.time(); tot = tp = tr = tss = 0.0; nb = 0
+        t0 = time.time(); tot = tp = tr = tk = tss = 0.0; nb = 0
         for x, a, loc, _, _ in loader:
             x = x.to(device, non_blocking=True).float()
-            t = x.shape[2] // 2                                 # a mid-trajectory start frame
-            obs0 = x[:, :, t:t + 1]                             # [B, C, 1, H, W]
+            B, _, T = x.shape[0], x.shape[1], x.shape[2]
             with torch.no_grad():
-                z0 = jepa.encode(obs0)                          # [B, f, 1, 1, 1]  (frozen)
+                z_all = jepa.encode(x)                         # [B, f, T, 1, 1]  (frozen)
+                z0 = z_all[:, :, T // 2:T // 2 + 1]            # mid-trajectory start
                 s_targets = torch.stack(
                     [psi_ema(dream_macro_option(jepa, z0, o, k, cell_size)) for o in range(N_OPTIONS)],
                     dim=1).detach()                             # [B, n_opt, coarse_dim]
-            loss, pred, reg = coarse_jepa_loss(psi, p_high, s_targets, z0, std_fn, cov_fn)
+            # (1) predictive (dream) + VICReg anti-collapse
+            loss_pr, pred, reg = coarse_jepa_loss(psi, p_high, s_targets, z0, std_fn, cov_fn)
+            # (2) temporal-distance RANKING: ||psi(z_i)-psi(z_j)|| ordered by |i-j| (scale-free)
+            s_all = psi(z_all.permute(0, 2, 1, 3, 4).reshape(B * T, f, 1, 1, 1)).reshape(B, T, -1)  # [B,T,dc]
+            ai = torch.randint(0, T, (n_pairs,), device=device)
+            o1 = torch.randint(0, T, (n_pairs,), device=device)
+            o2 = torch.randint(0, T, (n_pairs,), device=device)
+            nearer = (ai - o1).abs() <= (ai - o2).abs()
+            near = torch.where(nearer, o1, o2)
+            far = torch.where(nearer, o2, o1)
+            d_near = torch.norm(s_all[:, ai] - s_all[:, near], dim=-1)   # [B, n_pairs]
+            d_far = torch.norm(s_all[:, ai] - s_all[:, far], dim=-1)
+            rank_loss = torch.relu(1.0 + d_near - d_far).mean()
+            loss = loss_pr + rank_coeff * rank_loss
             opt.zero_grad(); loss.backward(); opt.step()
             ema_update(psi_ema, psi, tau=0.99)
-            with torch.no_grad():
-                tss += psi(z0).std().item()                    # collapse monitor: spread of coarse states
-            tot += loss.item(); tp += float(pred); tr += float(reg); nb += 1
+            tot += loss.item(); tp += float(pred); tr += float(reg)
+            tk += float(rank_loss); tss += s_all.std().item(); nb += 1
         nb = max(nb, 1)
         wandb.log({"coarse/loss": tot / nb, "coarse/pred": tp / nb, "coarse/reg": tr / nb,
-                   "coarse/s_std": tss / nb, "epoch": epoch})
+                   "coarse/rank": tk / nb, "coarse/s_std": tss / nb, "epoch": epoch})
         print(f"[coarse] epoch {epoch} {time.time()-t0:.0f}s loss={tot/nb:.4f} "
-              f"pred={tp/nb:.4f} reg={tr/nb:.4f} s_std={tss/nb:.4f}", flush=True)
+              f"pred={tp/nb:.4f} reg={tr/nb:.4f} rank={tk/nb:.4f} s_std={tss/nb:.4f}", flush=True)
         torch.save({"psi": psi.state_dict(), "p_high": p_high.state_dict(),
                     "coarse_dim": coarse_dim, "k": k, "f": f},
                    os.path.join(out_dir, "coarse.pth"))

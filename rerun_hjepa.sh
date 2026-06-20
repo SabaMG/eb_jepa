@@ -25,11 +25,15 @@ COARSE="$ROOT/coarse"; mkdir -p "$COARSE"
 EVAL="$ROOT/eval_hjepa"; mkdir -p "$EVAL"
 if [ ! -f "$FINE" ]; then echo "ERROR: aux ckpt not found at $FINE" >&2; exit 1; fi
 
-echo ">>> [1/2] train level-1 coarse JEPA (dreams) -> $COARSE"
+echo ">>> [1/3] train level-1 coarse JEPA (dreams + distance shaping) -> $COARSE"
 # <fine_ckpt> <out_dir> <epochs> <k macro-horizon>
-uv run --project "$REPO" python -m examples.ac_video_jepa.maze.train_coarse "$FINE" "$COARSE" 10 5
+uv run --project "$REPO" python -m examples.ac_video_jepa.maze.train_coarse "$FINE" "$COARSE" 20 8
 
-echo ">>> [2/2] A*-free 2-level eval -> $EVAL"
+echo ">>> [2/3] diagnostic: coarse-space navigability (metric monotonicity + beam vs A*)"
+uv run --project "$REPO" python -m examples.ac_video_jepa.maze.diag_hjepa \
+    "$FINE" "$COARSE/coarse.pth" 30 4 4
+
+echo ">>> [3/3] A*-free 2-level eval -> $EVAL"
 # <fine> <coarse_pth> <out_dir> num_ep Hc m beam_W budget_factor margin seed
 uv run --project "$REPO" python -m examples.ac_video_jepa.maze.eval_hjepa \
     "$FINE" "$COARSE/coarse.pth" "$EVAL" 200 4 3 4 4 10 0
