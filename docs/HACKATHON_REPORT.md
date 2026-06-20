@@ -333,18 +333,20 @@ quasimetric (harder negatives / contrastive / bigger head), not more planning.
 
 ---
 
-## 11. The breakthrough — low-level memory unlocks the hierarchy (84.5 %)
+## 11. The breakthrough — low-level memory unlocks the hierarchy (84.5 → 85.5 %)
 
 | config | success | SPL | note |
 |---|---|---|---|
 | direct-metric (flat, ex-best of §10) | 45.0 % | 0.244 | 1 abstraction, no subgoal |
 | dream-subgoal, memoryless low level | 42.0 % | 0.215 | the §10 "subgoal doesn't help" |
-| **dream-subgoal + low-level visit memory + junction-cadence replan** | **84.5 %** | **0.325** | job 77313, seed 0, 200 mazes |
+| dream-subgoal + visit memory, replan ≥ MIN_COMMIT-gated junction | 84.5 / 85.0 % | 0.325 / 0.329 | jobs 77313/77378, seeds 0/1 |
+| visit memory, **tiered** choice (metric decides among non-over-visited) | 53.5 % | 0.235 | job 77410 — **refuted**, see below |
+| **visit memory + dream-subgoal recomputed EVERY step** | **85.5 %** | **0.341** | job 77435, seed 0 — **best** |
 
-**169/200 solved, A\*-free, zero extra training** (pure inference logic on the *existing*
+**~170/200 solved, A\*-free, zero extra training** (pure inference logic on the *existing*
 checkpoints), still a strict 2-level H-JEPA in latent space. This nearly **doubles** the old
 45 % ceiling and clears the organiser's ~66 % success (though their SPL 0.62 is more *efficient*
-than our 0.325 — we are more robust, they are more direct).
+than our ~0.34 — we are more robust, they are more direct).
 
 **Why the §10 verdict was wrong.** The subgoal was never dead weight — the **memoryless greedy low
 level** was. It descends the quasimetric one step at a time with no record of where it has been, so
@@ -358,19 +360,28 @@ useless. Fix the low level and the subgoal suddenly pays.
    (`metric_rank + λ·visits[next_cell]`). The quasimetric stays the compass; revisits only nudge
    toward the unexplored frontier — which **breaks the orbits** and walks the agent out of
    dead-ends. Until now only *walls* were remembered (blocked-skip), never visited open cells.
-2. **Healthy subgoal cadence.** Replan the dreamed subgoal at a junction (WM degree ≥ 3, A\*-free),
-   but only after holding it ≥ `MIN_COMMIT` (=4) steps. This sits between the 17-step
-   over-commitment (misses turns) and the every-step teleporting (no commitment) — in practice
-   ≈ 1 replan / 5 steps.
+2. **Subgoal cadence — recompute EVERY step (best).** We A/B'd three cadences on the same model:
+   17-step over-commitment (misses turns), MIN_COMMIT-gated junction replan (84.5 %), and a
+   *receding-horizon* subgoal redreamed every step. The last wins (**85.5 % / 0.341**): a fresh
+   forward-progress waypoint each step both holds success and lifts SPL, because a too-sticky
+   subgoal lets the agent loop. (Earlier we feared "teleporting" — but with the additive revisit
+   memory underneath, recomputing every step is stable, not jittery.)
+
+**A refuted variant (worth a slide — shows the metric is the real bottleneck).** We also tried
+making the visit memory a *filter* instead of a penalty: among non-over-visited directions, let the
+quasimetric alone pick (i.e. "follow the subgoal faithfully"). It **collapsed to 53.5 % / 0.235**.
+Lesson: the strong, gradient-like revisit penalty is **load-bearing** — it compensates for the
+metric's *local* errors by forcing exploration out of wrong basins. Following the (locally-wrong)
+metric more faithfully just obeys a bad compass. So the deviations you see in the GIFs are not a
+bug; they are the agent escaping a noisy metric. The lever for efficiency is therefore the **metric
+itself** (the cross-trajectory-negatives retrain), not a more obedient controller.
 
 **Honest caveats (say them on the slide):**
-- **SPL 0.325 is still low** — successful paths are ~2.6× optimal; the agent explores a lot. This,
-  not success, is now the thing to improve.
-- The "junction" test is **near-always true** (the WM latent moves > 1e-3 in most directions), so
-  change (2) is effectively a *fixed ~5-step cadence*, not genuine branch selectivity. It works,
-  but the mechanism is humbler than the name.
-- **Confirmed across seeds:** seed 0 = 84.5 % / 0.325, seed 1 = **85.0 % / 0.329** (200 mazes
-  each) — robust to < 1 %, not a seed-0 fluke.
+- **SPL ~0.34 is still low** — successful paths are ~2.6× optimal; the agent explores a lot. This,
+  not success, is now the thing to improve, and it's a *metric* problem (see the refuted variant).
+- **Confirmed across seeds** (the 84.5 % config): seed 0 = 84.5 % / 0.325, seed 1 = 85.0 % / 0.329
+  (200 mazes each) — robust to < 1 %, not a seed-0 fluke. The every-step variant (85.5 % / 0.341,
+  seed 0) is the current best; a seed-1 confirmation is the obvious next check.
 
 **The next lever is efficiency, not success.** A coarse retrain with **cross-trajectory hard
 negatives** (unreachable other-maze states pushed to large distance — `train_coarse.py`) is running
