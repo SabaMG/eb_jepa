@@ -326,6 +326,60 @@ planning.** Best A\*-free result: **45 % / SPL 0.244**, all in latent space, 2 l
 no A\* in the loop. The ceiling is the metric's *local* accuracy; the next real lever is a better
 quasimetric (harder negatives / contrastive / bigger head), not more planning.
 
+> ⚠️ **This §10 verdict is SUPERSEDED by §11.** "Explicit subgoal planning doesn't help" turned
+> out to be an artifact of a *memoryless* low level — not a fact about hierarchy. Giving the low
+> level a visit memory flips the result: the 2-level subgoal config goes 42 % → **84.5 %**, nearly
+> double the flat direct-metric (45 %). The hierarchy was right; the controller was broken.
+
+---
+
+## 11. The breakthrough — low-level memory unlocks the hierarchy (84.5 %)
+
+| config | success | SPL | note |
+|---|---|---|---|
+| direct-metric (flat, ex-best of §10) | 45.0 % | 0.244 | 1 abstraction, no subgoal |
+| dream-subgoal, memoryless low level | 42.0 % | 0.215 | the §10 "subgoal doesn't help" |
+| **dream-subgoal + low-level visit memory + junction-cadence replan** | **84.5 %** | **0.325** | job 77313, seed 0, 200 mazes |
+
+**169/200 solved, A\*-free, zero extra training** (pure inference logic on the *existing*
+checkpoints), still a strict 2-level H-JEPA in latent space. This nearly **doubles** the old
+45 % ceiling and clears the organiser's ~66 % success (though their SPL 0.62 is more *efficient*
+than our 0.325 — we are more robust, they are more direct).
+
+**Why the §10 verdict was wrong.** The subgoal was never dead weight — the **memoryless greedy low
+level** was. It descends the quasimetric one step at a time with no record of where it has been, so
+(a) it **orbits** local-minima basins of the noisy metric (the "57× revisits" seen in GIFs), and
+(b) it **cannot back out of a dead-end**, because leaving one means temporarily *increasing* the
+distance, which a pure greedy descender never chooses. With that low level, *any* high level looks
+useless. Fix the low level and the subgoal suddenly pays.
+
+**The two changes** (both training-free, in `eval_hjepa.py` only):
+1. **Visit memory + revisit penalty.** Per-cell visit counts re-rank the candidate actions
+   (`metric_rank + λ·visits[next_cell]`). The quasimetric stays the compass; revisits only nudge
+   toward the unexplored frontier — which **breaks the orbits** and walks the agent out of
+   dead-ends. Until now only *walls* were remembered (blocked-skip), never visited open cells.
+2. **Healthy subgoal cadence.** Replan the dreamed subgoal at a junction (WM degree ≥ 3, A\*-free),
+   but only after holding it ≥ `MIN_COMMIT` (=4) steps. This sits between the 17-step
+   over-commitment (misses turns) and the every-step teleporting (no commitment) — in practice
+   ≈ 1 replan / 5 steps.
+
+**Honest caveats (say them on the slide):**
+- **SPL 0.325 is still low** — successful paths are ~2.6× optimal; the agent explores a lot. This,
+  not success, is now the thing to improve.
+- The "junction" test is **near-always true** (the WM latent moves > 1e-3 in most directions), so
+  change (2) is effectively a *fixed ~5-step cadence*, not genuine branch selectivity. It works,
+  but the mechanism is humbler than the name.
+- **Single seed** so far (seed 0, 200 mazes — tight CI); a seed-1 confirmation run is in flight.
+
+**The next lever is efficiency, not success.** A coarse retrain with **cross-trajectory hard
+negatives** (unreachable other-maze states pushed to large distance — `train_coarse.py`) is running
+in parallel (isolated `coarse_neg/`), aimed at sharpening the metric's *local* accuracy so the
+agent wanders less and SPL climbs.
+
+**Thesis for the talk:** a genuinely 2-level H-JEPA, A\*-free and all-latent, **beats the flat
+controller (45 % → 84.5 %)** once the low level is given the one thing every embodied agent has —
+memory of where it has been.
+
 ---
 
 ## Appendix — artifacts
@@ -343,6 +397,7 @@ quasimetric (harder negatives / contrastive / bigger head), not more planning.
 `docs/superpowers/plans/2026-06-20-hjepa-two-level.md` (and the superseded 1-level quasimetric design).
 
 **Key numbers:** baseline reproduced 81–90 % (32 mazes, unseeded); 2-level diagnostic
-monotonicity 0.68 → (fix pending); 2-level success 0 % → (fix pending). Maze 21×21, img 63.
+monotonicity 0.68 → 0.86 (quasimetric+LayerNorm); 2-level success 0 % → 45 % (wall-avoid) →
+**84.5 % / SPL 0.325** (low-level visit memory + cadence, job 77313, 200 seeded mazes). Maze 21×21, img 63.
 
 **W&B:** https://wandb.ai/tristan-faure-epita/eb_jepa — group `hjepa`.
