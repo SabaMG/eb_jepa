@@ -341,7 +341,7 @@ quasimetric (harder negatives / contrastive / bigger head), not more planning.
 | dream-subgoal, memoryless low level | 42.0 % | 0.215 | the §10 "subgoal doesn't help" |
 | dream-subgoal + visit memory, replan ≥ MIN_COMMIT-gated junction | 84.5 / 85.0 % | 0.325 / 0.329 | jobs 77313/77378, seeds 0/1 |
 | visit memory, **tiered** choice (metric decides among non-over-visited) | 53.5 % | 0.235 | job 77410 — **refuted**, see below |
-| **visit memory + dream-subgoal recomputed EVERY step** | **85.5 %** | **0.341** | job 77435, seed 0 — **best** |
+| **visit memory + dream-subgoal recomputed EVERY step** | **85.5 / 86.0 %** | **0.341 / 0.357** | jobs 77435/77508, seeds 0/1 — **best** |
 
 **~170/200 solved, A\*-free, zero extra training** (pure inference logic on the *existing*
 checkpoints), still a strict 2-level H-JEPA in latent space. This nearly **doubles** the old
@@ -379,9 +379,10 @@ itself** (the cross-trajectory-negatives retrain), not a more obedient controlle
 **Honest caveats (say them on the slide):**
 - **SPL ~0.34 is still low** — successful paths are ~2.6× optimal; the agent explores a lot. This,
   not success, is now the thing to improve, and it's a *metric* problem (see the refuted variant).
-- **Confirmed across seeds** (the 84.5 % config): seed 0 = 84.5 % / 0.325, seed 1 = 85.0 % / 0.329
-  (200 mazes each) — robust to < 1 %, not a seed-0 fluke. The every-step variant (85.5 % / 0.341,
-  seed 0) is the current best; a seed-1 confirmation is the obvious next check.
+- **Confirmed across seeds, both configs** (200 mazes each, not a fluke): MIN_COMMIT cadence
+  84.5 % / 0.325 (s0) · 85.0 % / 0.329 (s1); **every-step subgoal 85.5 % / 0.341 (s0) · 86.0 % /
+  0.357 (s1)** — every-step is consistently +1 pt success and +0.02–0.03 SPL on both seeds, so it
+  is the new best, robustly.
 
 **The next lever is efficiency, not success.** A coarse retrain with **cross-trajectory hard
 negatives** (unreachable other-maze states pushed to large distance — `train_coarse.py`) is running
