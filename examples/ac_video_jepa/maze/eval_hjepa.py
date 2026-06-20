@@ -151,7 +151,7 @@ def main():
         s_sg = None; moves = 0; done = False
         blocked = {}; last_rev = -1
         visited = {}                         # low-level visit memory
-        REVISIT_W = 1.0; MIN_COMMIT = 4      # revisit penalty; min hold before a junction replan
+        REVISIT_CAP = 2; MIN_COMMIT = 4      # exclude cells seen >=CAP times; min hold before junction replan
         hold = 0; reach_eps = 2.0; max_hold = max(4, 2 * sg_horizon)   # subgoal commitment
         OPP = {0: 1, 1: 0, 2: 3, 3: 2}    # opposite cardinal (no immediate U-turn)
         for step in range(budget):
@@ -194,18 +194,18 @@ def main():
             else:
                 hold += 1
             order = rank_fine_actions(jepa, psi, z_t, s_sg, cell_size, depth=low_depth,
-                                      width=beam_W, dist_fn=dist_fn)
-            rank = {d: i for i, d in enumerate(order)}
+                                      width=beam_W, dist_fn=dist_fn)   # metric order: closest-to-subgoal first
             nxt = {d: (cell[0] + int(CARDINALS[d][0]), cell[1] + int(CARDINALS[d][1]))
                    for d in range(4)}                       # cell each cardinal lands on
-            # LOW-LEVEL MEMORY: metric rank + revisit penalty -> break orbits, leave dead-ends.
-            # FIRST PASS IS FREE (max(0, visits-1)): the metric stays the compass, so at a junction
-            # the agent FOLLOWS the subgoal even through an already-seen cell; the penalty only
-            # bites on a genuine re-loop (cell entered 2+ times) -> better SPL, orbits still broken.
-            cand = sorted((d for d in order
-                           if d not in blocked.get(cell, set()) and d != last_rev),
-                          key=lambda d: rank[d] + REVISIT_W * max(0, visited.get(nxt[d], 0) - 1))
-            cand += [d for d in order if d not in cand]
+            movable = [d for d in order if d not in blocked.get(cell, set())]   # non-walls, metric order kept
+            # TIERED CHOICE (FOLLOW the subgoal): the visit memory only EXCLUDES over-visited cells,
+            # it never re-orders the metric. Among directions whose target cell is NOT over-visited
+            # (and not an immediate U-turn), take the one CLOSEST to the subgoal = movable order is
+            # already metric-sorted, so the first survivor IS that one. Fallbacks let it escape:
+            # drop the no-U-turn rule, then allow over-visited cells.
+            fresh = [d for d in movable if visited.get(nxt[d], 0) < REVISIT_CAP and d != last_rev]
+            cand = fresh or [d for d in movable if d != last_rev] or movable
+            cand = cand + [d for d in order if d not in cand]   # safety tail (walls / U-turn last)
             moved = False
             for d in cand:
                 prev = env.agent_cell.copy()
