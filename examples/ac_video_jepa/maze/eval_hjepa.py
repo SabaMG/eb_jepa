@@ -22,11 +22,27 @@ from omegaconf import OmegaConf
 from eb_jepa.datasets.utils import create_env, init_data
 from eb_jepa.datasets.maze.maze_solver import solve_a_star
 from eb_jepa.hjepa import (CoarseEncoder, CoarseDistanceHead, CoarsePredictor,
-                           coarse_beam, rank_fine_actions)
+                           coarse_beam, dream_macro_option, rank_fine_actions)
 from eb_jepa.hierarchical import CARDINALS
+from eb_jepa.state_decoder import MLPXYHead
 from eb_jepa.training_utils import load_checkpoint
-from eb_jepa.vis_utils import save_gif
+from eb_jepa.vis_utils import save_gif, save_gif_HWC
 from examples.ac_video_jepa.maze.maze_fine_wm import build_fine
+
+
+def _rgb_annot(obs, goal_mask, sg_mask):
+    """Render a frame as RGB with the goal (yellow) and current subgoal (cyan) overlaid.
+    obs: [C,H,W] (dot, wall). goal_mask/sg_mask: [H,W] dot masks from the env renderer."""
+    a = obs.detach().cpu().numpy()
+    H, W = a.shape[-2], a.shape[-1]
+    img = np.zeros((H, W, 3), np.uint8)
+    img[a[1] > 0.1] = (0, 170, 0)                      # walls green
+    if goal_mask is not None:
+        img[goal_mask > 0.2] = (255, 230, 0)           # goal yellow
+    if sg_mask is not None:
+        img[sg_mask > 0.2] = (0, 230, 230)             # subgoal cyan
+    img[a[0] > 0.3] = (255, 40, 40)                    # agent red (drawn on top)
+    return img
 
 
 @torch.no_grad()
@@ -46,7 +62,7 @@ def main():
     cell_size = float(env_config.cell_size)
 
     jepa, f = build_fine(cfg, env_config, device)
-    load_checkpoint(Path(fine_ckpt), jepa, optimizer=None, scheduler=None, device=device, strict=False)
+    info = load_checkpoint(Path(fine_ckpt), jepa, optimizer=None, scheduler=None, device=device, strict=False)
     jepa.eval()
     ck = torch.load(coarse_pth, map_location=device, weights_only=False)
     psi = CoarseEncoder(in_dim=ck["f"], coarse_dim=ck["coarse_dim"],
@@ -63,6 +79,19 @@ def main():
     env = create_env(cfg.data.env_name, config=env_config, n_allowed_steps=800,
                      max_step_norm=1.5, rng=np.random.default_rng(seed))
     norm = env.normalizer
+    k_macro = int(ck.get("k", 5))
+
+    # position probe (for decoding the subgoal latent -> a maze position for the GIF overlay)
+    xy_head = MLPXYHead(input_shape=f, normalizer=norm).to(device)
+    if isinstance(info, dict) and "xy_head_state_dict" in info:
+        xy_head.load_state_dict(info["xy_head_state_dict"])
+    xy_head.eval()
+
+    def subgoal_dot(z_t, o_star):
+        """Decode the chosen macro-option's dreamed endpoint to a maze-position dot mask."""
+        z_dream = dream_macro_option(jepa, z_t, o_star, k_macro, cell_size)   # [1,f,1,1,1]
+        xy = norm.unnormalize_location(xy_head(z_dream.float()).permute(0, 2, 1)[:, 0])[0]
+        return env._render_dot_at(xy)[0].detach().cpu().numpy()              # [H,W] dot mask
 
     def enc(o):
         ot = norm.normalize_state(o.to(dtype=torch.float32, device=device)).unsqueeze(0).unsqueeze(2)
@@ -85,6 +114,10 @@ def main():
         budget = min(int(budget_factor * astar_len + margin), 800)
         goal_img = info["target_obs"]
         frames = [obs]
+        is_gif = ep < n_gifs
+        gif_rgb = []
+        goal_mask = goal_img[0].detach().cpu().numpy() if is_gif else None
+        cur_sg_mask = None
         s_sg = None; moves = 0; done = False
         blocked = {}; last_rev = -1
         OPP = {0: 1, 1: 0, 2: 3, 3: 2}    # opposite cardinal (no immediate U-turn)
@@ -92,6 +125,11 @@ def main():
             z_t = enc(obs)
             if step % m == 0 or s_sg is None:
                 _o_star, s_sg = coarse_beam(p_high, psi(z_t), s_goal, Hc, beam_W, dist_fn=dist_fn)
+                if is_gif:
+                    try:
+                        cur_sg_mask = subgoal_dot(z_t, _o_star)
+                    except Exception:
+                        cur_sg_mask = None
             cell = tuple(int(c) for c in env.agent_cell)
             order = rank_fine_actions(jepa, psi, z_t, s_sg, cell_size, depth=low_depth,
                                       width=beam_W, dist_fn=dist_fn)
@@ -104,7 +142,10 @@ def main():
                 obs, _, done, trunc, info = env.step((CARDINALS[d] * cell_size).cpu().numpy())
                 moves += 1
                 if not np.array_equal(env.agent_cell, prev):
-                    moved = True; last_rev = OPP[d]; frames.append(obs); break
+                    moved = True; last_rev = OPP[d]; frames.append(obs)
+                    if is_gif:
+                        gif_rgb.append(_rgb_annot(obs, goal_mask, cur_sg_mask))
+                    break
                 blocked.setdefault(cell, set()).add(d)   # didn't move -> wall -> blacklist
                 if done or trunc:
                     break
@@ -116,9 +157,16 @@ def main():
             successes += 1; spls.append(astar_len / max(moves, astar_len))
         else:
             spls.append(0.0)
-        if ep < n_gifs and len(frames) > 1:
+        if is_gif and len(frames) > 1:
             label = "succ" if done else "fail"
-            save_gif(torch.stack([f.to(torch.float32) for f in frames]),
+            # annotated GIF: goal (yellow) + current subgoal (cyan) on every frame
+            try:
+                if len(gif_rgb) > 1:
+                    save_gif_HWC(gif_rgb, os.path.join(rdir, f"ep{ep}_{label}_annot.gif"), fps=8)
+            except Exception as e:
+                print(f"[hjepa-eval] annot gif failed ep{ep}: {e}", flush=True)
+            # plain GIF (fallback / reference)
+            save_gif(torch.stack([fr.to(torch.float32) for fr in frames]),
                      os.path.join(rdir, f"ep{ep}_{label}.gif"), fps=8,
                      show_frame_numbers=True, goal_frame=goal_img)
         wandb.log({"eval/success": float(done), "eval/spl": spls[-1],
