@@ -24,6 +24,7 @@ from eb_jepa.datasets.maze.maze_solver import solve_a_star
 from eb_jepa.hjepa import CoarseEncoder, CoarsePredictor, coarse_beam, pick_fine_action
 from eb_jepa.hierarchical import CARDINALS
 from eb_jepa.training_utils import load_checkpoint
+from eb_jepa.vis_utils import save_gif
 from examples.ac_video_jepa.maze.maze_fine_wm import build_fine
 
 
@@ -33,6 +34,7 @@ def main():
     fine_ckpt, coarse_pth, rdir = a[1], a[2], a[3]
     num_ep = int(a[4]); Hc = int(a[5]); m = int(a[6]); beam_W = int(a[7])
     budget_factor = float(a[8]); margin = int(a[9]); seed = int(a[10]) if len(a) > 10 else 0
+    n_gifs = int(a[11]) if len(a) > 11 else 0   # save a GIF of the first n_gifs episodes
     os.makedirs(rdir, exist_ok=True)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     cfg = OmegaConf.load(Path(fine_ckpt).parent / "config.yaml")
@@ -73,6 +75,8 @@ def main():
                               tuple(int(c) for c in env.goal_cell))
         astar_len = (len(solved[0]) - 1) if solved else 100
         budget = min(int(budget_factor * astar_len + margin), 800)
+        goal_img = info["target_obs"]
+        frames = [obs]
         s_sg = None; moves = 0; done = False
         for step in range(budget):
             z_t = enc(obs)
@@ -81,12 +85,18 @@ def main():
             dir_idx = pick_fine_action(jepa, psi, z_t, s_sg, cell_size)
             obs, _, done, trunc, info = env.step((CARDINALS[dir_idx] * cell_size).cpu().numpy())
             moves += 1
+            frames.append(obs)
             if done:
                 break
         if done:
             successes += 1; spls.append(astar_len / max(moves, astar_len))
         else:
             spls.append(0.0)
+        if ep < n_gifs and len(frames) > 1:
+            label = "succ" if done else "fail"
+            save_gif(torch.stack([f.to(torch.float32) for f in frames]),
+                     os.path.join(rdir, f"ep{ep}_{label}.gif"), fps=8,
+                     show_frame_numbers=True, goal_frame=goal_img)
         wandb.log({"eval/success": float(done), "eval/spl": spls[-1],
                    "eval/astar_len": astar_len, "eval/moves": moves, "eval/ep": ep,
                    "eval/running_success_rate": successes / (ep + 1)})
