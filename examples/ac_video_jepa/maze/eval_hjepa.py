@@ -150,15 +150,23 @@ def main():
         cur_sg_xy = None
         s_sg = None; moves = 0; done = False
         blocked = {}; last_rev = -1
+        hold = 0; reach_eps = 2.0; max_hold = max(4, 2 * sg_horizon)   # subgoal commitment
         OPP = {0: 1, 1: 0, 2: 3, 3: 2}    # opposite cardinal (no immediate U-turn)
         for step in range(budget):
             z_t = enc(obs)
-            if step % m == 0 or s_sg is None:
+            s_t = psi(z_t)
+            # COMMIT to a subgoal until it is REACHED (or a max hold) -> stable, no teleporting
+            if sg_horizon > 0:
+                d_to_sg = 1e9 if s_sg is None else float(
+                    (dist_fn(s_t, s_sg) if dist_fn else torch.norm(s_t - s_sg, dim=-1))[0])
+                replan = (s_sg is None) or (d_to_sg < reach_eps) or (hold >= max_hold)
+            else:
+                replan = (step % m == 0) or (s_sg is None)
+            if replan:
                 if sg_horizon > 0:
-                    # DREAM-SUBGOAL mode: a proper dynamic intermediate subgoal (reachable,
-                    # goal-aligned) from real WM dreams scored by the quasimetric.
                     s_sg, z_sg = dream_subgoal(jepa, psi, z_t, s_goal, sg_horizon, beam_W,
                                                max(2, sg_horizon // 2), cell_size, dist_fn=dist_fn)
+                    hold = 0
                     if is_gif:
                         cur_sg_xy = _centroid(pos_dot(z_sg))
                         agent_xy = _centroid(obs[0].detach().cpu().numpy())
@@ -166,7 +174,6 @@ def main():
                               f"agent@{None if agent_xy is None else (round(agent_xy[0]),round(agent_xy[1]))} "
                               f"goal@{None if goal_c is None else (round(goal_c[0]),round(goal_c[1]))}", flush=True)
                 elif Hc == 0:
-                    # DIRECT-METRIC: descend the quasimetric straight to the goal (no subgoal).
                     s_sg = s_goal
                     if is_gif:
                         cur_sg_xy = goal_c
@@ -174,6 +181,8 @@ def main():
                     _o_star, s_sg = coarse_beam(p_high, psi(z_t), s_goal, Hc, beam_W, dist_fn=dist_fn)
                     if is_gif:
                         cur_sg_xy = _centroid(subgoal_dot(z_t, _o_star))
+            else:
+                hold += 1
             cell = tuple(int(c) for c in env.agent_cell)
             order = rank_fine_actions(jepa, psi, z_t, s_sg, cell_size, depth=low_depth,
                                       width=beam_W, dist_fn=dist_fn)

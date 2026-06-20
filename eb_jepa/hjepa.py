@@ -227,9 +227,15 @@ def dream_subgoal(jepa, psi, z_t, s_goal, horizon, width, d_min, cell_size, dist
         beam = zn
     allz, alld, allm = torch.cat(pool_z), torch.cat(pool_d), torch.cat(pool_m)
     sc = score(allz)
-    ok = allm & (alld >= d_min)
-    sc_masked = torch.where(ok, sc, torch.full_like(sc, 1e9))
-    if bool((sc_masked >= 1e9).all()):                       # nothing reachable at depth>=d_min
+    d_now = float(score(z_t))                                # current coarse distance to goal
+    # FORWARD-PROGRESS + COMMITTED: among reachable candidates strictly closer to the goal,
+    # pick the FARTHEST one (most committed waypoint) -> stable, no backward/sideways jumps.
+    forward = allm & (alld >= d_min) & (sc < d_now - 1e-3)
+    if bool(forward.any()):
+        maxd = torch.where(forward, alld, torch.full_like(alld, -1.0)).max()
+        at_far = forward & (alld == maxd)
+        sc_masked = torch.where(at_far, sc, torch.full_like(sc, 1e9))
+    else:                                                    # no forward candidate -> best reachable
         sc_masked = torch.where(allm, sc, torch.full_like(sc, 1e9))
     idx = int(torch.argmin(sc_masked))
     z_sg = allz[idx:idx + 1]
