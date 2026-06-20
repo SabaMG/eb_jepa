@@ -342,6 +342,7 @@ quasimetric (harder negatives / contrastive / bigger head), not more planning.
 | dream-subgoal + visit memory, replan ≥ MIN_COMMIT-gated junction | 84.5 / 85.0 % | 0.325 / 0.329 | jobs 77313/77378, seeds 0/1 |
 | visit memory, **tiered** choice (metric decides among non-over-visited) | 53.5 % | 0.235 | job 77410 — **refuted**, see below |
 | **visit memory + dream-subgoal recomputed EVERY step** | **85.5 / 86.0 %** | **0.341 / 0.357** | jobs 77435/77508, seeds 0/1 — **best** |
+| every-step + coarse retrained with cross-traj hard negatives | 75.5 % | 0.287 | job 77379 — **refuted**, negatives hurt nav |
 
 **~170/200 solved, A\*-free, zero extra training** (pure inference logic on the *existing*
 checkpoints), still a strict 2-level H-JEPA in latent space. This nearly **doubles** the old
@@ -384,10 +385,14 @@ itself** (the cross-trajectory-negatives retrain), not a more obedient controlle
   0.357 (s1)** — every-step is consistently +1 pt success and +0.02–0.03 SPL on both seeds, so it
   is the new best, robustly.
 
-**The next lever is efficiency, not success.** A coarse retrain with **cross-trajectory hard
-negatives** (unreachable other-maze states pushed to large distance — `train_coarse.py`) is running
-in parallel (isolated `coarse_neg/`), aimed at sharpening the metric's *local* accuracy so the
-agent wanders less and SPL climbs.
+**We tried to crack the SPL ceiling via the metric — and it refused.** A coarse retrain with
+**cross-trajectory hard negatives** (unreachable other-maze states pushed to large distance —
+`train_coarse.py`, isolated `coarse_neg/`) was meant to sharpen the metric's *local* accuracy so
+the agent wanders less. It **regressed to 75.5 % / 0.287** (job 77379). So the easy negatives
+perturbed the embedding without fixing the local errors that matter — consistent with §10's theme
+that this metric is *delicate*: changes that look principled (LayerNorm+quasimetric, harder
+negatives) keep hurting navigation. The SPL ceiling (~0.34) stands; cracking it needs a smarter
+metric objective (e.g. mined *within-maze* geodesic negatives), not the cheap cross-maze ones.
 
 **Thesis for the talk:** a genuinely 2-level H-JEPA, A\*-free and all-latent, **beats the flat
 controller (45 % → 84.5 %)** once the low level is given the one thing every embodied agent has —
