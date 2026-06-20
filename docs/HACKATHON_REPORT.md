@@ -299,6 +299,33 @@ and (d) built the **more principled, genuinely 2-level H-JEPA** that replaces A\
 learned coarse world model. The architecture is sound and trains; closing the
 learned-router gap to A\* is the remaining (and most interesting) problem.
 
+## 10. Upgrade experiments & the final verdict (200 seeded mazes, 21×21)
+
+| config | success | SPL | note |
+|---|---|---|---|
+| Upgrade1: Euclidean dist + macro-beam | 45.0 % | 0.230 | first working number |
+| + fine dream-lookahead (depth 4) | 40.5 % | 0.212 | **hurts** (deeper search on a noisy cost) |
+| Upgrade3+4: quasimetric (MRN) + LayerNorm + macro-beam | 38.0 % | 0.181 | metric ↑↑ (monotonicity 0.68→**0.86**, s_std 4.6→1.1, pred ÷16) yet nav ↓ |
+| **Direct-metric (NO beam, descend quasimetric to goal)** | **45.0 %** | **0.244** | **best** — simplest |
+| dream-subgoal (proper intermediate subgoal) | 42.0 % | 0.215 | committed/forward subgoal, still < direct |
+
+**Three findings that survive scrutiny (slide-worthy):**
+1. **The macro-option beam is dead weight.** `beam-match-A*` is stuck at **0.32–0.37 across every
+   config**, independent of metric quality. Removing it (direct-metric) is best.
+2. **Better metric ≠ better navigation.** The quasimetric made the distance much sharper (0.86
+   monotone) but navigation got *worse* — proof the live bottleneck is the option/planning level,
+   not the metric. And **deeper planning on a noisy cost actively hurts**.
+3. **The subgoal mechanism's problem is placement, not stability.** We visualized goal+subgoal on
+   every frame (cyan ring) + printed `subgoal@(x,y)`. A "farthest forward-progress + commit-until-
+   reached" definition fixed the *teleporting* subgoal, but it still lands in **walled-off wrong
+   regions** — because the quasimetric, while globally monotone, has **local errors** (says a
+   region behind a wall is "near" the goal). The agent gets trapped there.
+
+**So the useful hierarchy is the abstraction (z, ψ(z)) + quasimetric — NOT explicit subgoal
+planning.** Best A\*-free result: **45 % / SPL 0.244**, all in latent space, 2 learned abstractions,
+no A\* in the loop. The ceiling is the metric's *local* accuracy; the next real lever is a better
+quasimetric (harder negatives / contrastive / bigger head), not more planning.
+
 ---
 
 ## Appendix — artifacts
