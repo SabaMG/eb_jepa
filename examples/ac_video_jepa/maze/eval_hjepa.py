@@ -150,16 +150,27 @@ def main():
         cur_sg_xy = None
         s_sg = None; moves = 0; done = False
         blocked = {}; last_rev = -1
+        visited = {}; last_cell = None      # low-level visit memory + junction-arrival guard
+        REVISIT_W = 1.0                      # revisit penalty weight
         hold = 0; reach_eps = 2.0; max_hold = max(4, 2 * sg_horizon)   # subgoal commitment
         OPP = {0: 1, 1: 0, 2: 3, 3: 2}    # opposite cardinal (no immediate U-turn)
         for step in range(budget):
+            cell = tuple(int(c) for c in env.agent_cell)
             z_t = enc(obs)
             s_t = psi(z_t)
-            # COMMIT to a subgoal until it is REACHED (or a max hold) -> stable, no teleporting
+            # INTERSECTION degree via the fine WM (A*-free): how many cardinals' 1-step dream
+            # actually moves. >=3 = a real branch point -> the ONLY place a fresh subgoal helps
+            # (corridors have no choice to make). No noisy "stuck" proxy: a crisp geometric event.
+            a4 = (CARDINALS.to(z_t.device) * cell_size).unsqueeze(-1)
+            z4 = jepa.predictor(z_t.expand(4, -1, -1, -1, -1).contiguous(), a4)
+            degree = int(((z4 - z_t.expand_as(z4)).flatten(1).norm(dim=1) > 1e-3).sum())
+            at_junction = (degree >= 3) and (cell != last_cell)   # branch point, fresh arrival
+            last_cell = cell
+            # COMMIT to a subgoal until REACHED or a JUNCTION (re-decide the branch) -> stable
             if sg_horizon > 0:
                 d_to_sg = 1e9 if s_sg is None else float(
                     (dist_fn(s_t, s_sg) if dist_fn else torch.norm(s_t - s_sg, dim=-1))[0])
-                replan = (s_sg is None) or (d_to_sg < reach_eps) or (hold >= max_hold)
+                replan = (s_sg is None) or (d_to_sg < reach_eps) or at_junction or (hold >= max_hold)
             else:
                 replan = (step % m == 0) or (s_sg is None)
             if replan:
@@ -183,11 +194,16 @@ def main():
                         cur_sg_xy = _centroid(subgoal_dot(z_t, _o_star))
             else:
                 hold += 1
-            cell = tuple(int(c) for c in env.agent_cell)
             order = rank_fine_actions(jepa, psi, z_t, s_sg, cell_size, depth=low_depth,
                                       width=beam_W, dist_fn=dist_fn)
-            # try best-first, skipping blacklisted moves at this cell and the immediate U-turn
-            cand = [d for d in order if d not in blocked.get(cell, set()) and d != last_rev]
+            rank = {d: i for i, d in enumerate(order)}
+            nxt = {d: (cell[0] + int(CARDINALS[d][0]), cell[1] + int(CARDINALS[d][1]))
+                   for d in range(4)}                       # cell each cardinal lands on
+            # LOW-LEVEL MEMORY: metric rank + revisit penalty -> break orbits, leave dead-ends.
+            # The quasimetric stays the compass; revisits only nudge toward unexplored frontier.
+            cand = sorted((d for d in order
+                           if d not in blocked.get(cell, set()) and d != last_rev),
+                          key=lambda d: rank[d] + REVISIT_W * visited.get(nxt[d], 0))
             cand += [d for d in order if d not in cand]
             moved = False
             for d in cand:
@@ -196,6 +212,8 @@ def main():
                 moves += 1
                 if not np.array_equal(env.agent_cell, prev):
                     moved = True; last_rev = OPP[d]; frames.append(obs)
+                    nc = tuple(int(c) for c in env.agent_cell)
+                    visited[nc] = visited.get(nc, 0) + 1   # low-level visit memory
                     if is_gif:
                         gif_frames.append((_maze_rgb(obs), _centroid(obs[0].detach().cpu().numpy()),
                                            goal_c, cur_sg_xy))
