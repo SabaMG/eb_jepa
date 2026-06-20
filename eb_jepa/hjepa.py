@@ -195,6 +195,48 @@ def coarse_beam(p_high, s0, s_goal, horizon, width, dist_fn=None):
 
 
 @torch.no_grad()
+def dream_subgoal(jepa, psi, z_t, s_goal, horizon, width, d_min, cell_size, dist_fn=None, block_eps=1e-3):
+    """HIGH level (proper dynamic subgoal). Dream reachable intermediate states with the
+    FINE world model (a beam over cardinal sequences), score every dreamed latent by the
+    learned coarse distance to the goal, and return the best **reach-bounded** candidate
+    (depth >= d_min, and it actually moved) as the subgoal. Splits a far goal into a near,
+    reachable sub-target -- using the GOOD quasimetric + real WM dreams (not the lossy
+    P_high macro-options). Returns (s_sg [1,dc], z_sg [1,D,1,1,1])."""
+    device = z_t.device
+    dirs = CARDINALS.to(device)
+
+    def score(z):
+        return _to_goal(psi(z), s_goal, dist_fn)
+
+    a4 = (dirs * cell_size).unsqueeze(-1)
+    z = jepa.predictor(z_t.expand(4, -1, -1, -1, -1).contiguous(), a4)        # [4,D,1,1,1]
+    pool_z = [z]
+    pool_d = [torch.ones(4, device=device)]
+    pool_m = [(z - z_t.expand_as(z)).flatten(1).norm(dim=1) > block_eps]
+    beam = z
+    for h in range(2, horizon + 1):
+        sc = score(beam)
+        keep = min(width, beam.shape[0])
+        beam = beam[torch.topk(-sc, keep).indices]
+        zr = beam.repeat_interleave(4, dim=0).contiguous()
+        a = (dirs.repeat(beam.shape[0], 1) * cell_size).unsqueeze(-1)
+        zn = jepa.predictor(zr, a)
+        pool_z.append(zn)
+        pool_d.append(torch.full((zn.shape[0],), float(h), device=device))
+        pool_m.append((zn - zr).flatten(1).norm(dim=1) > block_eps)
+        beam = zn
+    allz, alld, allm = torch.cat(pool_z), torch.cat(pool_d), torch.cat(pool_m)
+    sc = score(allz)
+    ok = allm & (alld >= d_min)
+    sc_masked = torch.where(ok, sc, torch.full_like(sc, 1e9))
+    if bool((sc_masked >= 1e9).all()):                       # nothing reachable at depth>=d_min
+        sc_masked = torch.where(allm, sc, torch.full_like(sc, 1e9))
+    idx = int(torch.argmin(sc_masked))
+    z_sg = allz[idx:idx + 1]
+    return psi(z_sg), z_sg
+
+
+@torch.no_grad()
 def rank_fine_actions(jepa, psi, z_t, s_sg, cell_size, depth=1, width=4, block_eps=1e-3, dist_fn=None):
     """Rank the 4 first-cardinals by how close a `depth`-step WM DREAM gets (in coarse
     space) to the subgoal s_sg, best first. Two upgrades, both training-free:

@@ -164,6 +164,21 @@ def test_rank_fine_actions_deprioritizes_dreamed_walls():
     assert order[-1] == 0                # dir 0 is a dreamed wall -> ranked last despite pointing at goal
 
 
+def test_dream_subgoal_targets_toward_goal():
+    from eb_jepa.hjepa import dream_subgoal
+
+    class J:
+        def predictor(self, z, a):
+            o = z.clone(); o[:, 0, 0, 0, 0] += a[:, 0, 0]; o[:, 1, 0, 0, 0] += a[:, 1, 0]; return o
+
+    psi = lambda z: z.flatten(2).mean(-1)[:, :2]      # coarse state = position
+    z_t = torch.zeros(1, 4, 1, 1, 1)
+    s_goal = torch.tensor([[3.0, 0.0]])               # goal at +x
+    s_sg, z_sg = dream_subgoal(J(), psi, z_t, s_goal, horizon=4, width=4, d_min=2, cell_size=1.0)
+    pos = z_sg[0, :2, 0, 0, 0]
+    assert torch.norm(pos - torch.tensor([3.0, 0.0])) < 3.0   # subgoal is closer to goal than the start
+
+
 def test_pick_fine_action_descends_coarse_distance():
     jepa = _StubJEPA()
     psi = lambda z: z.flatten(2).mean(-1)[:, :2]   # coarse state = position

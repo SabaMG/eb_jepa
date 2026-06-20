@@ -22,27 +22,38 @@ from omegaconf import OmegaConf
 from eb_jepa.datasets.utils import create_env, init_data
 from eb_jepa.datasets.maze.maze_solver import solve_a_star
 from eb_jepa.hjepa import (CoarseEncoder, CoarseDistanceHead, CoarsePredictor,
-                           coarse_beam, dream_macro_option, rank_fine_actions)
+                           coarse_beam, dream_macro_option, dream_subgoal, rank_fine_actions)
 from eb_jepa.hierarchical import CARDINALS
 from eb_jepa.state_decoder import MLPXYHead
 from eb_jepa.training_utils import load_checkpoint
-from eb_jepa.vis_utils import save_gif, save_gif_HWC
 from examples.ac_video_jepa.maze.maze_fine_wm import build_fine
 
 
 def _rgb_annot(obs, goal_mask, sg_mask):
-    """Render a frame as RGB with the goal (yellow) and current subgoal (cyan) overlaid.
-    obs: [C,H,W] (dot, wall). goal_mask/sg_mask: [H,W] dot masks from the env renderer."""
+    """Render a frame in the original maze style (green walls, red agent) + goal (yellow)
+    + subgoal (cyan). obs: [C,H,W] (dot, wall). goal_mask/sg_mask: [H,W] env-rendered dots."""
     a = obs.detach().cpu().numpy()
     H, W = a.shape[-2], a.shape[-1]
     img = np.zeros((H, W, 3), np.uint8)
-    img[a[1] > 0.1] = (0, 170, 0)                      # walls green
+    img[a[1] > 0.1] = (0, 200, 0)                      # walls green (as the original gifs)
     if goal_mask is not None:
         img[goal_mask > 0.2] = (255, 230, 0)           # goal yellow
     if sg_mask is not None:
         img[sg_mask > 0.2] = (0, 230, 230)             # subgoal cyan
-    img[a[0] > 0.3] = (255, 40, 40)                    # agent red (drawn on top)
+    img[a[0] > 0.3] = (235, 30, 30)                    # agent red (drawn on top)
     return img
+
+
+def _save_annot_gif(rgb_frames, path, fps=8, scale=6):
+    """Save the annotated frames as a GIF, upscaled, with a frame counter (old-gif style)."""
+    from PIL import Image, ImageDraw
+    n = len(rgb_frames)
+    ims = []
+    for i, arr in enumerate(rgb_frames):
+        im = Image.fromarray(arr).resize((arr.shape[1] * scale, arr.shape[0] * scale), Image.NEAREST)
+        ImageDraw.Draw(im).text((3, 2), f"Frame {i + 1}/{n}", fill=(255, 255, 255))
+        ims.append(im)
+    ims[0].save(path, save_all=True, append_images=ims[1:], duration=max(1, int(1000 / fps)), loop=0)
 
 
 @torch.no_grad()
@@ -53,6 +64,7 @@ def main():
     budget_factor = float(a[8]); margin = int(a[9]); seed = int(a[10]) if len(a) > 10 else 0
     n_gifs = int(a[11]) if len(a) > 11 else 0   # save a GIF of the first n_gifs episodes
     low_depth = int(a[12]) if len(a) > 12 else 1  # fine-level dream lookahead (1 = greedy)
+    sg_horizon = int(a[13]) if len(a) > 13 else 0  # >0 = dream-subgoal mode (proper dynamic subgoal)
     os.makedirs(rdir, exist_ok=True)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     cfg = OmegaConf.load(Path(fine_ckpt).parent / "config.yaml")
@@ -87,11 +99,14 @@ def main():
         xy_head.load_state_dict(info["xy_head_state_dict"])
     xy_head.eval()
 
+    def pos_dot(z):
+        """Decode a latent's probe position to an env-rendered dot mask (for the overlay)."""
+        xy = norm.unnormalize_location(xy_head(z.float()).permute(0, 2, 1)[:, 0])[0]
+        return env._render_dot_at(xy)[0].detach().cpu().numpy()              # [H,W] dot mask
+
     def subgoal_dot(z_t, o_star):
         """Decode the chosen macro-option's dreamed endpoint to a maze-position dot mask."""
-        z_dream = dream_macro_option(jepa, z_t, o_star, k_macro, cell_size)   # [1,f,1,1,1]
-        xy = norm.unnormalize_location(xy_head(z_dream.float()).permute(0, 2, 1)[:, 0])[0]
-        return env._render_dot_at(xy)[0].detach().cpu().numpy()              # [H,W] dot mask
+        return pos_dot(dream_macro_option(jepa, z_t, o_star, k_macro, cell_size))
 
     def enc(o):
         ot = norm.normalize_state(o.to(dtype=torch.float32, device=device)).unsqueeze(0).unsqueeze(2)
@@ -124,10 +139,21 @@ def main():
         for step in range(budget):
             z_t = enc(obs)
             if step % m == 0 or s_sg is None:
-                if Hc == 0:
-                    # DIRECT-METRIC mode: skip the (broken) macro-option beam, descend the
-                    # learned quasimetric straight toward the goal. Tests the metric alone.
+                if sg_horizon > 0:
+                    # DREAM-SUBGOAL mode: a proper dynamic intermediate subgoal (reachable,
+                    # goal-aligned) from real WM dreams scored by the quasimetric.
+                    s_sg, z_sg = dream_subgoal(jepa, psi, z_t, s_goal, sg_horizon, beam_W,
+                                               max(2, sg_horizon // 2), cell_size, dist_fn=dist_fn)
+                    if is_gif:
+                        try:
+                            cur_sg_mask = pos_dot(z_sg)
+                        except Exception:
+                            cur_sg_mask = None
+                elif Hc == 0:
+                    # DIRECT-METRIC: descend the quasimetric straight to the goal (no subgoal).
                     s_sg = s_goal
+                    if is_gif:
+                        cur_sg_mask = goal_mask
                 else:
                     _o_star, s_sg = coarse_beam(p_high, psi(z_t), s_goal, Hc, beam_W, dist_fn=dist_fn)
                     if is_gif:
@@ -167,13 +193,9 @@ def main():
             # annotated GIF: goal (yellow) + current subgoal (cyan) on every frame
             try:
                 if len(gif_rgb) > 1:
-                    save_gif_HWC(gif_rgb, os.path.join(rdir, f"ep{ep}_{label}_annot.gif"), fps=8)
+                    _save_annot_gif(gif_rgb, os.path.join(rdir, f"ep{ep}_{label}_annot.gif"), fps=8)
             except Exception as e:
                 print(f"[hjepa-eval] annot gif failed ep{ep}: {e}", flush=True)
-            # plain GIF (fallback / reference)
-            save_gif(torch.stack([fr.to(torch.float32) for fr in frames]),
-                     os.path.join(rdir, f"ep{ep}_{label}.gif"), fps=8,
-                     show_frame_numbers=True, goal_frame=goal_img)
         wandb.log({"eval/success": float(done), "eval/spl": spls[-1],
                    "eval/astar_len": astar_len, "eval/moves": moves, "eval/ep": ep,
                    "eval/running_success_rate": successes / (ep + 1)})
