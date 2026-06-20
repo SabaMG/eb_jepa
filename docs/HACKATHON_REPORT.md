@@ -369,7 +369,8 @@ useless. Fix the low level and the subgoal suddenly pays.
 - The "junction" test is **near-always true** (the WM latent moves > 1e-3 in most directions), so
   change (2) is effectively a *fixed ~5-step cadence*, not genuine branch selectivity. It works,
   but the mechanism is humbler than the name.
-- **Single seed** so far (seed 0, 200 mazes — tight CI); a seed-1 confirmation run is in flight.
+- **Confirmed across seeds:** seed 0 = 84.5 % / 0.325, seed 1 = **85.0 % / 0.329** (200 mazes
+  each) — robust to < 1 %, not a seed-0 fluke.
 
 **The next lever is efficiency, not success.** A coarse retrain with **cross-trajectory hard
 negatives** (unreachable other-maze states pushed to large distance — `train_coarse.py`) is running

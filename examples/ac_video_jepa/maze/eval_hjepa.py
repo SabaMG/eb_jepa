@@ -199,10 +199,12 @@ def main():
             nxt = {d: (cell[0] + int(CARDINALS[d][0]), cell[1] + int(CARDINALS[d][1]))
                    for d in range(4)}                       # cell each cardinal lands on
             # LOW-LEVEL MEMORY: metric rank + revisit penalty -> break orbits, leave dead-ends.
-            # The quasimetric stays the compass; revisits only nudge toward unexplored frontier.
+            # FIRST PASS IS FREE (max(0, visits-1)): the metric stays the compass, so at a junction
+            # the agent FOLLOWS the subgoal even through an already-seen cell; the penalty only
+            # bites on a genuine re-loop (cell entered 2+ times) -> better SPL, orbits still broken.
             cand = sorted((d for d in order
                            if d not in blocked.get(cell, set()) and d != last_rev),
-                          key=lambda d: rank[d] + REVISIT_W * visited.get(nxt[d], 0))
+                          key=lambda d: rank[d] + REVISIT_W * max(0, visited.get(nxt[d], 0) - 1))
             cand += [d for d in order if d not in cand]
             moved = False
             for d in cand:
