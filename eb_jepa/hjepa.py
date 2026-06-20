@@ -166,21 +166,44 @@ def coarse_beam(p_high, s0, s_goal, horizon, width):
 
 
 @torch.no_grad()
-def rank_fine_actions(jepa, psi, z_t, s_sg, cell_size, block_eps=1e-3):
-    """Rank the 4 cardinals by coarse-space distance of their 1-step fine prediction to
-    s_sg (best first), with MODEL-BASED wall avoidance (the "dreamer-scale" fix): a move
-    whose 1-step WM dream does not change the latent (`||predictor(z,a) - z|| < block_eps`)
-    is a wall -> the wall-aware WM predicts "stay" -> push it to the back. So the agent
-    avoids walls *in imagination* (no bumping needed) instead of relying on execution
-    feedback. Returns a list of dir indices 0..3, moving actions first."""
+def rank_fine_actions(jepa, psi, z_t, s_sg, cell_size, depth=1, width=4, block_eps=1e-3):
+    """Rank the 4 first-cardinals by how close a `depth`-step WM DREAM gets (in coarse
+    space) to the subgoal s_sg, best first. Two upgrades, both training-free:
+
+    - MODEL-BASED wall avoidance (dreamer-scale): a move whose dream doesn't change the
+      latent (`||predictor(z,a) - z|| < block_eps`) is a wall -> pushed to the back. The
+      agent avoids walls *in imagination*, no bumping.
+    - `depth > 1`: a fine-level DREAM LOOKAHEAD (a small beam over cardinal sequences),
+      so the agent routes around a local wall by imagining `depth` steps, not just 1.
+      `depth=1` reduces to the 1-step rule. Returns a list of dir indices 0..3."""
+    INF = 1e6
     device = z_t.device
     dirs = CARDINALS.to(device)
-    a = (dirs * cell_size).unsqueeze(-1)
-    z_next = jepa.predictor(z_t.expand(4, -1, -1, -1, -1).contiguous(), a)
-    moved = (z_next - z_t.expand_as(z_next)).flatten(1).norm(dim=1) > block_eps   # [4]
-    d = torch.norm(psi(z_next) - s_sg, dim=-1)                                     # [4]
-    d_eff = torch.where(moved, d, d + 1e6)            # blocked (dreamed "stay") -> ranked last
-    return torch.argsort(d_eff).tolist()
+    a1 = (dirs * cell_size).unsqueeze(-1)                                  # [4,2,1]
+    z1 = jepa.predictor(z_t.expand(4, -1, -1, -1, -1).contiguous(), a1)    # [4,D,1,1,1]
+    moved = (z1 - z_t.expand_as(z1)).flatten(1).norm(dim=1) > block_eps
+    first = torch.arange(4, device=device)
+    d1 = torch.where(moved, torch.norm(psi(z1) - s_sg, dim=-1),
+                     torch.full((4,), INF, device=device))
+    out = d1.clone()                                                       # best dist per first action
+    if depth > 1:
+        keep = min(width, 4)
+        sel = torch.topk(-d1, keep).indices
+        beam_z, beam_first = z1[sel], first[sel]
+        for _ in range(depth - 1):
+            M = beam_z.shape[0]
+            z_rep = beam_z.repeat_interleave(4, dim=0).contiguous()
+            a = (dirs.repeat(M, 1) * cell_size).unsqueeze(-1)
+            z_next = jepa.predictor(z_rep, a)
+            mv = (z_next - z_rep).flatten(1).norm(dim=1) > block_eps
+            first_rep = beam_first.repeat_interleave(4)
+            dd = torch.where(mv, torch.norm(psi(z_next) - s_sg, dim=-1),
+                             torch.full((z_next.shape[0],), INF, device=device))
+            out = out.scatter_reduce(0, first_rep, dd, reduce="amin")
+            keep = min(width, z_next.shape[0])
+            sel = torch.topk(-dd, keep).indices
+            beam_z, beam_first = z_next[sel], first_rep[sel]
+    return torch.argsort(out).tolist()
 
 
 @torch.no_grad()

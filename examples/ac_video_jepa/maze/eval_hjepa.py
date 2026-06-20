@@ -35,6 +35,7 @@ def main():
     num_ep = int(a[4]); Hc = int(a[5]); m = int(a[6]); beam_W = int(a[7])
     budget_factor = float(a[8]); margin = int(a[9]); seed = int(a[10]) if len(a) > 10 else 0
     n_gifs = int(a[11]) if len(a) > 11 else 0   # save a GIF of the first n_gifs episodes
+    low_depth = int(a[12]) if len(a) > 12 else 1  # fine-level dream lookahead (1 = greedy)
     os.makedirs(rdir, exist_ok=True)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     cfg = OmegaConf.load(Path(fine_ckpt).parent / "config.yaml")
@@ -85,7 +86,7 @@ def main():
             if step % m == 0 or s_sg is None:
                 _o_star, s_sg = coarse_beam(p_high, psi(z_t), s_goal, Hc, beam_W)
             cell = tuple(int(c) for c in env.agent_cell)
-            order = rank_fine_actions(jepa, psi, z_t, s_sg, cell_size)
+            order = rank_fine_actions(jepa, psi, z_t, s_sg, cell_size, depth=low_depth, width=beam_W)
             # try best-first, skipping blacklisted moves at this cell and the immediate U-turn
             cand = [d for d in order if d not in blocked.get(cell, set()) and d != last_rev]
             cand += [d for d in order if d not in cand]
@@ -123,7 +124,7 @@ def main():
     wandb.run.summary["spl"] = spl
     wandb.log({"eval/success_rate": sr, "eval/spl_mean": spl})
     json.dump({"success_rate": sr, "spl": spl, "num_episodes": num_ep, "levels": 2,
-               "Hc": Hc, "m": m, "beam_W": beam_W, "seed": seed, "astar_free": True},
+               "Hc": Hc, "m": m, "beam_W": beam_W, "low_depth": low_depth, "seed": seed, "astar_free": True},
               open(os.path.join(rdir, "hjepa_eval.json"), "w"), indent=2)
     print(f"[hjepa-eval] A*-FREE 2-level success={sr*100:.2f}%  SPL={spl:.3f}  over {num_ep} mazes (seed {seed})", flush=True)
     wandb.finish()
